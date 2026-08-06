@@ -1,0 +1,27 @@
+card|00|GRID|A|m f14|     √ * SIN
+card|00|GRID|B|m|
+card|00|GRID|C|m f14|X²*∏
+card|00|GRID|D|m|
+card|00|GRID|E|m|
+card|00|GRID|A'|m|
+card|00|GRID|B'|m|
+card|00|GRID|C'|m|
+card|00|GRID|D'|m|
+card|00|GRID|E'|m|
+ml1|01|FREE|1|f14|Solid State Software
+ml1|01|FREE|2|f16|MASTER LIBRARY DIAGNOSTIC      ML-01
+ml1|01|FREE|3|DIAGNOSTIC: SBR =
+ml1|01|FREE|4|L.R. INIT:SBR CLR    PRINT:mm STO 00 
+ml1|02|FREE|1|Solid State Software
+ml1|02|FREE|2|M1-MASTER LIBRARY DIAGNOSTIC
+ml1|02|GRID|A|f14|i;→xi
+ml1|02|GRID|B|f14|→A⁻¹
+ml1|02|GRID|C|f14|i;+aᵢᵢ⁻¹
+ml1|02|GRID|D|
+ml1|02|GRID|E|f14|→|A|,A⁻¹
+ml1|02|GRID|A'|f14|n
+ml1|02|GRID|B'|f14|j;aᵢⱼ
+ml1|02|GRID|C'|f14|→|A|
+ml1|02|GRID|D'|f14|i;bᵢ
+ml1|02|GRID|E'|f14|→x
+

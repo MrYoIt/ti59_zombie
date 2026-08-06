@@ -1,0 +1,8 @@
+# Installer / binari di grandi dimensioni
+OpenCode Desktop.dmg
+
+# macOS
+.DS_Store
+
+# Artefatti di build Arduino
+build/

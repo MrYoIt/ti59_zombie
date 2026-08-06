@@ -1,0 +1,17 @@
+Library-ROM direct register encoding for STO/RCL/SUM/EXC/Prod ──
+    // In the ML-1 ROM (and real TI-59 library ROMs), memory-reference
+    // instructions encode the register number as raw byte(s) that come
+    // directly after the opcode — NOT as digit keypresses that go through
+    // the two-digit pending-reg accumulator:
+    //
+    //   registers  0–9  → 1 byte  whose value IS the register (0–9, ≤ 9)
+    //                      followed by a non-digit (>9) opcode
+    //   registers 10–19 → 1 byte  whose value IS the register (10–19, > 9)
+    //                      (e.g. 12 = register 12, even though 12 = KC_B)
+    //   registers 20–99 → 2 bytes both ≤ 9 (e.g. [8,1] = register 81)
+    //
+    // We intercept these here and execute the operation directly so the
+    // pending-reg digit-accumulation path is never entered for lib-ROM.
+    if (showing_lib_prog &&
+        (opcode == KC_STO || opcode == KC_RCL || opcode == KC_SUM ||
+         opcode == KC_EXC ||

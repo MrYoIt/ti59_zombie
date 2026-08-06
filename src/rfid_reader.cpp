@@ -1,19 +1,19 @@
 /*
- * TI-59 Zombie — emulatore TI-59 su ESP32-S3 (TMS1500)
+ * TI-59 Zombie — emulatore TI-59 su ESP32-S3 (TMS1500) — TI-59 emulator on ESP32-S3 (TMS1500)
  * Copyright (C) 2026 Maurizio Petruccioli (MrYo)
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Questo programma è software libero: puoi ridistribuirlo e/o modificarlo — This program is free software: you can redistribute it and/or modify
+ * nei termini della GNU General Public License pubblicata dalla — it under the terms of the GNU General Public License as published by
+ * Free Software Foundation, versione 3 della Licenza, o (a tua scelta) — the Free Software Foundation, either version 3 of the License, or
+ * qualsiasi versione successiva — (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Questo programma è distribuito nella speranza che sia utile — This program is distributed in the hope that it will be useful,
+ * ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di — but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * COMMERCIABILITÀ o IDONEITÀ A UNO SCOPO PARTICOLARE. Vedi la — MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License per maggiori dettagli — GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * Dovresti aver ricevuto una copia della GNU General Public License — You should have received a copy of the GNU General Public License
+ * unitamente a questo programma. In caso contrario, vedi — along with this program.  If not, see <https://www.gnu.org/licenses/>. — testo licenza GNU GPL — GNU GPL license text
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include "rfid_reader.h"
@@ -25,15 +25,15 @@
 #include <stdio.h>
 #include <MFRC522.h>
 
-// ─── Stato modulo ─────────────────────────────────────────
+// ─── Stato modulo — module state ───────────────────────────
 static bool      g_rfid_present = false;
 static bool      g_write_armed  = false;
 static int       g_armed_slot   = -1;
-static uint16_t  g_eject_ms     = RFD_EJECT_MS;   // regolabile via web (NVS)
+static uint16_t  g_eject_ms     = RFD_EJECT_MS;   // regolabile via web (NVS) — adjustable via web (NVS)
 
 static MFRC522   g_rfid(PIN_RFID_CS, PIN_RFID_RST);
 
-// ─── Mappa UID -> slot (fallback) ─────────────────────────
+// ─── Mappa UID -> slot (fallback) — UID -> slot map (fallback) ──
 typedef struct {
     uint8_t uid[7];
     uint8_t uid_len;
@@ -43,14 +43,14 @@ typedef struct {
 static UidMapEntry g_map[RFD_MAP_MAX];
 static int g_map_n = 0;
 
-// ─── Alimentazione modulo ─────────────────────────────────
+// ─── Alimentazione modulo — module power ───────────────────
 static void rfid_power(bool on) {
     digitalWrite(PIN_RFID_PWR, on ? HIGH : LOW);
     if (on) delay(RFD_PWR_SETTLE_MS);
 }
 
-// ─── Scan tag (bloccante, ~RFD_SCAN_ATTEMPTS × 100ms) ─────
-// Il modulo deve essere già alimentato e PCD_Init() chiamato.
+// ─── Scan tag (bloccante, ~RFD_SCAN_ATTEMPTS × 100ms) — tag scan (blocking, ~RFD_SCAN_ATTEMPTS × 100ms) ──
+// Il modulo deve essere già alimentato e PCD_Init() chiamato. — The module must already be powered and PCD_Init() called.
 static bool rfid_scan_uid(uint8_t *uid, uint8_t *uid_len) {
     for (int i = 0; i < RFD_SCAN_ATTEMPTS; i++) {
         if (g_rfid.PICC_IsNewCardPresent()) {
@@ -66,7 +66,7 @@ static bool rfid_scan_uid(uint8_t *uid, uint8_t *uid_len) {
     return false;
 }
 
-// ─── Leggi slot dal tag (pagina RFD_TAG_SLOT_PAGE, 3 cifre ASCII) ──
+// ─── Leggi slot dal tag (pagina RFD_TAG_SLOT_PAGE, 3 cifre ASCII) — read slot from tag (page RFD_TAG_SLOT_PAGE, 3 ASCII digits) ──
 static bool rfid_tag_read_slot(int *slot) {
     byte buf[18];
     byte bufSize = sizeof(buf);
@@ -79,7 +79,7 @@ static bool rfid_tag_read_slot(int *slot) {
     return true;
 }
 
-// ─── Scrivi slot nel tag (NTAG213 WRITE 0xA2: opcode + pagina + 4 byte dati) ──
+// ─── Scrivi slot nel tag (NTAG213 WRITE 0xA2: opcode + pagina + 4 byte dati) — write slot to tag (NTAG213 WRITE 0xA2: opcode + page + 4 data bytes) ──
 static bool rfid_tag_write_slot(int slot) {
     byte cmd[6] = {
         0xA2, RFD_TAG_SLOT_PAGE,
@@ -94,7 +94,7 @@ static bool rfid_tag_write_slot(int slot) {
     return (st == MFRC522::STATUS_OK);
 }
 
-// ─── Espulsione scheda (motore) ───────────────────────────
+// ─── Espulsione scheda (motore) — card ejection (motor) ────
 static void rfid_eject(void) {
     digitalWrite(PIN_CARD_MOTOR, HIGH);
     delay(g_eject_ms);
@@ -112,7 +112,7 @@ uint16_t rfid_reader_get_eject_ms(void) {
     return g_eject_ms;
 }
 
-// ─── Mappa UID (SPIFFS /rfid_map.json) ────────────────────
+// ─── Mappa UID (SPIFFS /rfid_map.json) — UID map (SPIFFS /rfid_map.json) ─
 static int hexval(char c) {
     if (c >= '0' && c <= '9') return c - '0';
     if (c >= 'a' && c <= 'f') return c - 'a' + 10;
@@ -135,7 +135,7 @@ static void rfid_map_load(void) {
 
     const char *p = buf;
     while ((p = strstr(p, "\"uid\":\"")) != NULL && g_map_n < RFD_MAP_MAX) {
-        const char *u = p + 7;         // dopo "uid":"
+        const char *u = p + 7;         // dopo "uid":" — after "uid":
         uint8_t uid[7];
         int ubytes = 0;
         while (*u && *u != '"' && ubytes < 7) {
@@ -175,7 +175,7 @@ static bool rfid_map_save(void) {
     return true;
 }
 
-// ─── API pubbliche ────────────────────────────────────────
+// ─── API pubbliche — public API ────────────────────────────
 void rfid_reader_init(void) {
     pinMode(PIN_RFID_PWR, OUTPUT);
     digitalWrite(PIN_RFID_PWR, LOW);
@@ -184,15 +184,15 @@ void rfid_reader_init(void) {
 
     rfid_map_load();
 
-    // Auto-detect: accende il modulo e interroga la versione del chip.
-    // 0x00/0xFF = nessun modulo rispondente (o assente).
+    // Auto-detect: accende il modulo e interroga la versione del chip. — Auto-detect: powers the module and queries the chip version.
+    // 0x00/0xFF = nessun modulo rispondente (o assente). — 0x00/0xFF = no responding module (or absent).
     rfid_power(true);
     SPI.begin(PIN_SPI_CLK, PIN_SPI_MISO, PIN_SPI_MOSI, PIN_RFID_CS);
     g_rfid.PCD_Init();
-    // BUGFIX: PCD_Init() della libreria rilancia SPI.begin() con i pin di
-    // default dell'S3 (SCK=12, MISO=13, MOSI=11, SS=10) che su questo
-    // progetto sono le COLONNE della tastiera: ripristiniamo subito il
-    // nostro bus SPI prima di qualsiasi lettura.
+    // BUGFIX: PCD_Init() della libreria rilancia SPI.begin() con i pin di — BUGFIX: the library's PCD_Init() re-runs SPI.begin() with the default
+    // default dell'S3 (SCK=12, MISO=13, MOSI=11, SS=10) che su questo — S3 pins (SCK=12, MISO=13, MOSI=11, SS=10) which on this
+    // progetto sono le COLONNE della tastiera: ripristiniamo subito il — project are the keyboard COLUMNS: we immediately restore the
+    // nostro bus SPI prima di qualsiasi lettura. — our SPI bus before any read.
     SPI.begin(PIN_SPI_CLK, PIN_SPI_MISO, PIN_SPI_MOSI, PIN_RFID_CS);
     byte ver = g_rfid.PCD_ReadRegister(MFRC522::VersionReg);
     g_rfid_present = (ver != 0x00 && ver != 0xFF);
@@ -203,7 +203,7 @@ void rfid_reader_init(void) {
     } else {
         Serial.printf("[RFID] MFRC522 non rilevato (v%02X) - lettore disabilitato\n", ver);
     }
-    rfid_power(false);   // spento a riposo, si accende solo per le operazioni
+    rfid_power(false);   // spento a riposo, si accende solo per le operazioni — off at rest, powered on only for operations
 }
 
 bool rfid_reader_enabled(void) {
@@ -220,7 +220,7 @@ bool rfid_reader_write_armed(void) {
     return g_write_armed;
 }
 
-// Trova il primo slot libero (stessa regola di tms1500_on_physical_write)
+// Trova il primo slot libero (stessa regola di tms1500_on_physical_write) — Finds the first free slot (same rule as tms1500_on_physical_write)
 static int rfid_next_free(const CardEmuState *card) {
     for (int s = 0; s < CARD_SLOT_COUNT; s++)
         if (!card->slots[s].valid) return s;
@@ -232,8 +232,8 @@ bool rfid_reader_handle_insert(CardEmuState *card, TMS1500_State *cpu,
     if (!g_rfid_present) return false;
 
     rfid_power(true);
-    g_rfid.PCD_Init();      // il modulo è rimasto spento: re-init
-    SPI.begin(PIN_SPI_CLK, PIN_SPI_MISO, PIN_SPI_MOSI, PIN_RFID_CS);  // v. BUGFIX in init
+    g_rfid.PCD_Init();      // il modulo è rimasto spento: re-init — the module was off: re-init
+    SPI.begin(PIN_SPI_CLK, PIN_SPI_MISO, PIN_SPI_MOSI, PIN_RFID_CS);  // v. BUGFIX in init — see BUGFIX in init
     if (g_rfid.PCD_ReadRegister(MFRC522::VersionReg) == 0x00 ||
         g_rfid.PCD_ReadRegister(MFRC522::VersionReg) == 0xFF) {
         Serial.println("[RFID] Modulo non risponde dopo accensione");
@@ -349,7 +349,7 @@ bool rfid_reader_probe(uint8_t *uid_out, uint8_t *uid_len, int *slot_read) {
     if (!g_rfid_present) return false;
     rfid_power(true);
     g_rfid.PCD_Init();
-    SPI.begin(PIN_SPI_CLK, PIN_SPI_MISO, PIN_SPI_MOSI, PIN_RFID_CS);  // v. BUGFIX in init
+    SPI.begin(PIN_SPI_CLK, PIN_SPI_MISO, PIN_SPI_MOSI, PIN_RFID_CS);  // v. BUGFIX in init — see BUGFIX in init
     bool got = rfid_scan_uid(uid_out, uid_len);
     if (got) {
         *slot_read = -1;

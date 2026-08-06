@@ -1,5 +1,5 @@
 /*
- * TI-59 Zombie — emulatore TI-59 su ESP32-S3 (TMS1500)
+ * TI-59 Zombie — emulatore TI-59 su ESP32-S3 (TMS1500) — TI-59 emulator on the ESP32-S3 (TMS1500)
  * Copyright (C) 2026 Maurizio Petruccioli (MrYo)
  *
  * This program is free software: you can redistribute it and/or modify
@@ -26,7 +26,7 @@
 #include <stdio.h>
 #include <math.h>
 
-// ─── Tabella caratteri 7-segmenti ────────────────────────
+// ─── Tabella caratteri 7-segmenti — 7-segment character table ────────────────────────
 static const uint8_t DIGIT_SEG[10] = {
     0b0111111, 0b0000110, 0b1011011, 0b1001111, 0b1100110,
     0b1101101, 0b1111101, 0b0000111, 0b1111111, 0b1101111,
@@ -40,17 +40,17 @@ static const uint8_t DIGIT_SEG[10] = {
 #define SEG_CALC   (SEG_A|SEG_D|SEG_E|SEG_F)
 #define SEG_MINUS_SIGN SEG_MINUS
 
-// ─── I2C helper HT16K33 ──────────────────────────────────
-// Comando singolo (register) — nessun dato successivo.
+// ─── I2C helper HT16K33 — HT16K33 I2C helper ──────────────────────────────────
+// Comando singolo (register) — nessun dato successivo. — Single (register) command — no data follows.
 static void ht16k33_cmd(uint8_t reg) {
     Wire.beginTransmission(HT16K33_I2C_ADDR);
     Wire.write(reg);
     Wire.endTransmission();
 }
 
-// Scrive tutta la RAM display (16 colonne × 8 righe = 16 byte).
-// Il primo byte dopo l'address è il registro di partenza (colonna 0);
-// l'HT16K33 autoincrementa il puntatore a ogni byte successivo.
+// Scrive tutta la RAM display (16 colonne × 8 righe = 16 byte). — Writes the whole display RAM (16 columns × 8 rows = 16 bytes).
+// Il primo byte dopo l'address è il registro di partenza (colonna 0); — The first byte after the address is the starting register (column 0);
+// l'HT16K33 autoincrementa il puntatore a ogni byte successivo. — the HT16K33 auto-increments the pointer on each subsequent byte.
 static void ht16k33_write_ram(const uint8_t *ram) {
     Wire.beginTransmission(HT16K33_I2C_ADDR);
     Wire.write(HT16K33_RAM_BASE);
@@ -58,17 +58,17 @@ static void ht16k33_write_ram(const uint8_t *ram) {
     Wire.endTransmission();
 }
 
-// ─── Init ────────────────────────────────────────────────
+// ─── Inizializzazione — Init ────────────────────────────────────────────────
 void display_init(DisplayState *disp) {
     memset(disp, 0, sizeof(DisplayState));
     disp->brightness = 7;
 
     Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
 
-    // ─── Trap hardware ──────────────────────────────────────
-    // Se il driver non risponde (nessun HT16K33 cablato), si salta
-    // tutta l'inizializzazione e il refresh: il resto del firmware
-    // (web, SPIFFS, emulatore) funziona senza display.
+    // ─── Trap hardware — Hardware trap ──────────────────────────────────────
+    // Se il driver non risponde (nessun HT16K33 cablato), si salta — If the driver does not respond (no HT16K33 wired), it skips
+    // tutta l'inizializzazione e il refresh: il resto del firmware — all initialization and refresh: the rest of the firmware
+    // (web, SPIFFS, emulatore) funziona senza display. — (web, SPIFFS, emulator) works without a display.
     Wire.beginTransmission(HT16K33_I2C_ADDR);
     disp->present = (Wire.endTransmission() == 0);
     if (!disp->present) {
@@ -76,8 +76,8 @@ void display_init(DisplayState *disp) {
         return;
     }
 
-    ht16k33_cmd(HT16K33_OSC_ON);       // osc. interno ON
-    ht16k33_cmd(HT16K33_DISP_ON);      // display ON, blink OFF
+    ht16k33_cmd(HT16K33_OSC_ON);       // osc. interno ON — internal oscillator ON
+    ht16k33_cmd(HT16K33_DISP_ON);      // display acceso, blink spento — display ON, blink OFF
     ht16k33_cmd(HT16K33_BRIGHT(disp->brightness));
 
     uint8_t ram[16];
@@ -86,10 +86,10 @@ void display_init(DisplayState *disp) {
 
     display_test(disp);
     delay(300);
-    ht16k33_write_ram(ram);            // spegni tutto dopo il test
+    ht16k33_write_ram(ram);            // spegni tutto dopo il test — turn everything off after the test
 }
 
-// ─── Test display (accende tutti i segmenti 300ms) ───────
+// ─── Test display (accende tutti i segmenti 300ms) — Display test (lights all segments for 300ms) ───────
 void display_test(DisplayState *disp) {
     if (!disp->present) return;
     uint8_t ram[16];
@@ -100,18 +100,18 @@ void display_test(DisplayState *disp) {
     ht16k33_write_ram(ram);
 }
 
-// ─── Brightness ──────────────────────────────────────────
+// ─── Luminosità — Brightness ──────────────────────────────────────────
 void display_set_brightness(DisplayState *disp, uint8_t level) {
     disp->brightness = level & 0x0F;
     if (!disp->present) return;
     ht16k33_cmd(HT16K33_BRIGHT(disp->brightness));
 }
 
-// ─── Converti BCD TI-59 → array segmenti 12 digit ───────
+// ─── Converti BCD TI-59 → array segmenti 12 digit — Convert TI-59 BCD to a 12-digit segment array ───────
 void display_update_from_cpu(DisplayState *disp, TMS1500_State *cpu) {
     if (!cpu->disp_dirty) return;
-    // NON resettare disp_dirty qui — lascia che display_refresh lo faccia
-    // dopo aver inviato i dati all'HT16K33
+    // NON resettare disp_dirty qui — lascia che display_refresh lo faccia — Do NOT reset disp_dirty here — let display_refresh do it
+    // dopo aver inviato i dati all'HT16K33 — after sending the data to the HT16K33
 
     const int8_t *n = cpu->disp_buf;
 
@@ -126,7 +126,7 @@ void display_update_from_cpu(DisplayState *disp, TMS1500_State *cpu) {
 
     memset(disp->segments, SEG_SPACE, 12);
 
-    // Esponente (D12, D11)
+    // Esponente (D12, D11) — Exponent (D12, D11)
     int exp_sign = (n[1] < 0) ? -1 : 1;
     int exp_val  = n[2] * 10 + n[3];
 
@@ -137,12 +137,12 @@ void display_update_from_cpu(DisplayState *disp, TMS1500_State *cpu) {
         disp->segments[10] = DIGIT_SEG[n[3]];
     }
 
-    // Segno mantissa
+    // Segno mantissa — Mantissa sign
     if (n[0] < 0) {
         disp->segments[9] = SEG_MINUS;
     }
 
-    // Mantissa (D8..D1 = nibble n[4]..n[11])
+    // Mantissa (D8..D1 = nibble n[4]..n[11]) — Mantissa (D8..D1 = nibbles n[4]..n[11])
     int dp_pos = 7;
     for (int d = 0; d < 8; d++) {
         int nibble_idx = 4 + (7 - d);
@@ -155,12 +155,12 @@ void display_update_from_cpu(DisplayState *disp, TMS1500_State *cpu) {
         disp->segments[d] = seg;
     }
 
-    // Modalità calcolo
+    // Modalità calcolo — Calculation mode
     if (disp->calc_mode) {
         disp->segments[11] = SEG_CALC;
     }
 
-    // Trailing DP (indicatore operazione in sospeso)
+    // Trailing DP (indicatore operazione in sospeso) — Trailing DP (pending operation indicator)
     if (tms1500_get_trailing_dp()) {
         for (int d = 7; d >= 0; d--) {
             if (disp->segments[d] != SEG_SPACE) {
@@ -173,14 +173,14 @@ void display_update_from_cpu(DisplayState *disp, TMS1500_State *cpu) {
     disp->dirty = true;
 }
 
-// ─── Refresh fisico HT16K33 ──────────────────────────────
-// Colonna 0 = D12 (esponente, sinistra), colonna 11 = D1 (destra).
-// Il buffer firmware usa segments[0]=D1 ... segments[11]=D12, quindi
-// si rispecchia l'ordine: RAM[col] = segments[11 - col].
+// ─── Refresh fisico HT16K33 — Physical HT16K33 refresh ──────────────────────────────
+// Colonna 0 = D12 (esponente, sinistra), colonna 11 = D1 (destra). — Column 0 = D12 (exponent, left), column 11 = D1 (right).
+// Il buffer firmware usa segments[0]=D1 ... segments[11]=D12, quindi — The firmware buffer uses segments[0]=D1 ... segments[11]=D12, so
+// si rispecchia l'ordine: RAM[col] = segments[11 - col]. — the order is mirrored: RAM[col] = segments[11 - col].
 void display_refresh(DisplayState *disp) {
     if (!disp->dirty) return;
     disp->dirty = false;
-    if (!disp->present) return;   // nessun hardware: niente scritture I2C
+    if (!disp->present) return;   // nessun hardware: niente scritture I2C — no hardware: no I2C writes
 
     uint8_t ram[16];
     memset(ram, SEG_SPACE, 16);
@@ -190,7 +190,7 @@ void display_refresh(DisplayState *disp) {
     ht16k33_write_ram(ram);
 }
 
-// ─── Mostra stringa ASCII ──────────────────────────────
+// ─── Mostra stringa ASCII — Show ASCII string ──────────────────────────────
 void display_show_string(DisplayState *disp, const char *s) {
     static uint8_t seg_map[128] = {0};
     static bool initialized = false;
@@ -220,7 +220,7 @@ void display_show_string(DisplayState *disp, const char *s) {
     memset(disp->segments, SEG_SPACE, 12);
     int len = strlen(s);
 
-    /* Trova la sottostringa significativa */
+    /* Trova la sottostringa significativa — Find the significant substring */
     int start = 0;
     while (start < len && s[start] == ' ') start++;
     int end = len - 1;
@@ -230,20 +230,20 @@ void display_show_string(DisplayState *disp, const char *s) {
         return;
     }
 
-    /* Conta i caratteri visibili: il punto NON occupa una cifra a sé */
+    /* Conta i caratteri visibili: il punto NON occupa una cifra a sé — Counts the visible characters: the dot does NOT occupy a digit of its own */
     int digits = 0;
     for (int i = start; i <= end; i++) {
         if (s[i] != '.') digits++;
     }
 
-    /* Giustificazione a destra: l'ultima cifra finisce sempre in colonna 11 */
+    /* Giustificazione a destra: l'ultima cifra finisce sempre in colonna 11 — Right justification: the last digit always ends up in column 11 */
     int pos = 11 - (digits - 1);
     if (pos < 0) pos = 0;
 
     for (int i = start; i <= end && pos < 12; i++) {
         unsigned char ch = (unsigned char)s[i];
         if (ch == '.') {
-            /* Il punto si attacca alla cifra PRECEDENTE nel display */
+            /* Il punto si attacca alla cifra PRECEDENTE nel display — The dot attaches to the PREVIOUS digit on the display */
             if (pos > 0) disp->segments[pos - 1] |= SEG_DP;
         } else {
             if (ch < 128) disp->segments[pos] = seg_map[ch];
@@ -251,7 +251,7 @@ void display_show_string(DisplayState *disp, const char *s) {
         }
     }
 
-    /* Punto operativo (trailing DP) sull'ultima cifra a destra */
+    /* Punto operativo (trailing DP) sull'ultima cifra a destra — Operating point (trailing DP) on the last rightmost digit */
     if (tms1500_get_trailing_dp() && digits > 0) {
         disp->segments[11] |= SEG_DP;
     }
@@ -260,7 +260,7 @@ void display_show_string(DisplayState *disp, const char *s) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// FUNZIONI AGGIUNTE (display_calc_indicator_tick, settings)
+// FUNZIONI AGGIUNTE (display_calc_indicator_tick, settings) — ADDED FUNCTIONS (display_calc_indicator_tick, settings)
 // ═══════════════════════════════════════════════════════════
 
 static const SystemSettings *g_disp_settings = nullptr;

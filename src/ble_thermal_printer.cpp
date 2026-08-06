@@ -1,37 +1,37 @@
 /*
- * TI-59 Zombie — emulatore TI-59 su ESP32-S3 (TMS1500)
+ * TI-59 Zombie — emulatore TI-59 su ESP32-S3 (TMS1500) — TI-59 emulator on ESP32-S3 (TMS1500)
  * Copyright (C) 2026 Maurizio Petruccioli (MrYo)
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Questo programma è software libero: puoi ridistribuirlo e/o modificarlo — This program is free software: you can redistribute it and/or modify
+ * nei termini della GNU General Public License pubblicata dalla — it under the terms of the GNU General Public License as published by
+ * Free Software Foundation, versione 3 della Licenza, o (a tua scelta) — the Free Software Foundation, either version 3 of the License, or
+ * qualsiasi versione successiva — (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Questo programma è distribuito nella speranza che sia utile — This program is distributed in the hope that it will be useful,
+ * ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di — but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * COMMERCIABILITÀ o IDONEITÀ A UNO SCOPO PARTICOLARE. Vedi la — MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License per maggiori dettagli — GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * Dovresti aver ricevuto una copia della GNU General Public License — You should have received a copy of the GNU General Public License
+ * unitamente a questo programma. In caso contrario, vedi — along with this program.  If not, see <https://www.gnu.org/licenses/>. — testo licenza GNU GPL — GNU GPL license text
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 /*
- * ble_thermal_printer.cpp — Backend BLE per stampante termica.
+ * ble_thermal_printer.cpp — Backend BLE per stampante termica. — BLE backend for the thermal printer.
  *
- * Richiede la libreria "NimBLE-Arduino" (h2zero/NimBLE-Arduino),
- * consigliata su ESP32-S3 al posto dello stack Bluedroid integrato
- * per minore uso di RAM/flash. Aggiungila con:
+ * Richiede la libreria "NimBLE-Arduino" (h2zero/NimBLE-Arduino), — Requires the "NimBLE-Arduino" library (h2zero/NimBLE-Arduino),
+ * consigliata su ESP32-S3 al posto dello stack Bluedroid integrato — recommended on ESP32-S3 instead of the built-in Bluedroid stack
+ * per minore uso di RAM/flash. Aggiungila con: — for lower RAM/flash usage. Add it with:
  *   pio lib install "h2zero/NimBLE-Arduino"
- * oppure dal Library Manager dell'Arduino IDE.
+ * oppure dal Library Manager dell'Arduino IDE. — or from the Arduino IDE Library Manager.
  *
- * NON COMPILATO/TESTATO su hardware reale in questa sessione (qui
- * non è disponibile un toolchain ESP32). Prima di flashare:
- *   1. Verifica gli UUID reali della tua stampante (nRF Connect).
- *   2. Aggiorna BLE_PRINTER_DEFAULT_CONFIG o passa una config custom
- *      a ble_printer_begin().
- *   3. Se il modello richiede ESC/POS invece di ASCII semplice,
- *      imposta use_escpos=true e adatta escpos_wrap_line() sotto.
+ * NON COMPILATO/TESTATO su hardware reale in questa sessione (qui — NOT COMPILED/TESTED on real hardware in this session (here
+ * non è disponibile un toolchain ESP32). Prima di flashare: — no ESP32 toolchain is available). Before flashing:
+ *   1. Verifica gli UUID reali della tua stampante (nRF Connect). — Check your printer's real UUIDs (nRF Connect).
+ *   2. Aggiorna BLE_PRINTER_DEFAULT_CONFIG o passa una config custom — Update BLE_PRINTER_DEFAULT_CONFIG or pass a custom config
+ *      a ble_printer_begin(). — to ble_printer_begin().
+ *   3. Se il modello richiede ESC/POS invece di ASCII semplice, — If the model requires ESC/POS instead of plain ASCII,
+ *      imposta use_escpos=true e adatta escpos_wrap_line() sotto. — set use_escpos=true and adapt escpos_wrap_line() below.
  */
 
 #include "ble_thermal_printer.h"
@@ -39,20 +39,20 @@
 #include <string.h>
 #include <Arduino.h>
 
-// UUID Nordic UART Service (convenzione de-facto per molti bridge
-// BLE-seriale economici, incluse diverse mini-stampanti termiche).
+// UUID Nordic UART Service (convenzione de-facto per molti bridge — Nordic UART Service UUID (de-facto convention for many cheap
+// BLE-seriale economici, incluse diverse mini-stampanti termiche). — BLE-serial bridges, including several thermal mini-printers).
 #define NUS_SERVICE_UUID   "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
-#define NUS_RX_CHAR_UUID   "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"  // scrittura (ESP32 -> stampante)
+#define NUS_RX_CHAR_UUID   "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"  // scrittura (ESP32 -> stampante) — write (ESP32 -> printer)
 
 const BlePrinterConfig BLE_PRINTER_DEFAULT_CONFIG = {
-    /* device_name        */ "",   // vuoto = cerca solo per UUID di servizio
-    /* service_uuid        */ NUS_SERVICE_UUID,
-    /* write_char_uuid      */ NUS_RX_CHAR_UUID,
-    /* connect_timeout_ms  */ 8000,
-    /* use_escpos          */ false,
+    /* device_name        */ "",   // vuoto = cerca solo per UUID di servizio — empty = search only by service UUID
+    /* UUID del servizio — service_uuid        */ NUS_SERVICE_UUID,
+    /* UUID caratteristica di scrittura — write_char_uuid      */ NUS_RX_CHAR_UUID,
+    /* timeout di connessione — connect_timeout_ms  */ 8000,
+    /* usa ESC/POS — use_escpos          */ false,
 };
 
-// ─── Stato interno ──────────────────────────────────────────
+// ─── Stato interno — internal state ─────────────────────────
 static BlePrinterConfig g_cfg;
 static NimBLEClient      *g_client   = nullptr;
 static NimBLERemoteCharacteristic *g_write_char = nullptr;
@@ -62,15 +62,15 @@ static volatile bool      g_scanning  = false;
 static uint32_t           g_last_reconnect_attempt_ms = 0;
 #define RECONNECT_INTERVAL_MS 5000
 
-// Piccola coda circolare di righe in attesa di stampa (la stampa non
-// è mai unʼoperazione bloccante o critica per il calcolo).
+// Piccola coda circolare di righe in attesa di stampa (la stampa non — Small circular queue of lines waiting to print (printing is
+// è mai unʼoperazione bloccante o critica per il calcolo). — never a blocking or calculation-critical operation).
 #define QUEUE_CAPACITY 16
 #define LINE_MAXLEN    64
 static char     g_queue[QUEUE_CAPACITY][LINE_MAXLEN];
 static uint8_t  g_queue_head = 0, g_queue_tail = 0, g_queue_count = 0;
 
 static void queue_push(const char *line) {
-    if (g_queue_count >= QUEUE_CAPACITY) return;  // coda piena: riga persa (non critico)
+    if (g_queue_count >= QUEUE_CAPACITY) return;  // coda piena: riga persa (non critico) — queue full: line dropped (not critical)
     strncpy(g_queue[g_queue_tail], line, LINE_MAXLEN - 1);
     g_queue[g_queue_tail][LINE_MAXLEN - 1] = '\0';
     g_queue_tail = (g_queue_tail + 1) % QUEUE_CAPACITY;
@@ -85,7 +85,7 @@ static bool queue_pop(char *out) {
     return true;
 }
 
-// ─── Callback di connessione ────────────────────────────────
+// ─── Callback di connessione — connection callbacks ────────
 class PrinterClientCallbacks : public NimBLEClientCallbacks {
     void onConnect(NimBLEClient *pClient) override {
         g_connected = true;
@@ -97,7 +97,7 @@ class PrinterClientCallbacks : public NimBLEClientCallbacks {
 };
 static PrinterClientCallbacks g_client_callbacks;
 
-// ─── Callback di scansione ──────────────────────────────────
+// ─── Callback di scansione — scan callbacks ────────────────
 class PrinterScanCallbacks : public NimBLEScanCallbacks {
     void onResult(const NimBLEAdvertisedDevice *dev) override {
         bool name_match = g_cfg.device_name && strlen(g_cfg.device_name) > 0
@@ -111,17 +111,17 @@ class PrinterScanCallbacks : public NimBLEScanCallbacks {
 };
 static PrinterScanCallbacks g_scan_callbacks;
 
-// ─── Formattazione riga (ASCII semplice o wrapper ESC/POS) ──
-// Comandi ESC/POS minimi utili: avanzamento riga = '\n' funziona
-// già sulla maggior parte dei firmware; taglio carta = GS V (non
-// tutte le mini-stampanti BLE lo supportano, va verificato).
+// ─── Formattazione riga (ASCII semplice o wrapper ESC/POS) — line formatting (plain ASCII or ESC/POS wrapper) ──
+// Comandi ESC/POS minimi utili: avanzamento riga = '\n' funziona — Useful minimal ESC/POS commands: line feed = '\n' works
+// già sulla maggior parte dei firmware; taglio carta = GS V (non — already on most firmwares; paper cut = GS V (not
+// tutte le mini-stampanti BLE lo supportano, va verificato). — all BLE mini-printers support it, must be verified).
 static size_t escpos_wrap_line(const char *line, uint8_t *out, size_t out_cap) {
     size_t n = 0;
     size_t len = strlen(line);
     if (len > out_cap - 2) len = out_cap - 2;
     memcpy(out, line, len);
     n = len;
-    out[n++] = '\n';   // avanzamento riga
+    out[n++] = '\n';   // avanzamento riga — line feed
     return n;
 }
 
@@ -172,30 +172,30 @@ static void start_scan(void) {
     g_scanning = false;
 }
 
-// ─── API pubblica ───────────────────────────────────────────
+// ─── API pubblica — public API ──────────────────────────────
 void ble_printer_begin(const BlePrinterConfig *cfg) {
     g_cfg = cfg ? *cfg : BLE_PRINTER_DEFAULT_CONFIG;
     NimBLEDevice::init("TI59-Zombie");
-    // La scansione iniziale viene avviata dal primo ble_printer_poll():
-    // evitiamo di bloccare setup() con una scansione sincrona lunga.
+    // La scansione iniziale viene avviata dal primo ble_printer_poll(): — The initial scan is started by the first ble_printer_poll():
+    // evitiamo di bloccare setup() con una scansione sincrona lunga. — we avoid blocking setup() with a long synchronous scan.
 }
 
 void ble_printer_poll(void) {
     uint32_t now = millis();
 
-    if (g_connected) return;   // già connessi, nulla da fare
+    if (g_connected) return;   // già connessi, nulla da fare — already connected, nothing to do
 
     if (now - g_last_reconnect_attempt_ms < RECONNECT_INTERVAL_MS) return;
     g_last_reconnect_attempt_ms = now;
 
     if (!g_target_device) {
-        start_scan();   // popola g_target_device se trova un match
+        start_scan();   // popola g_target_device se trova un match — populates g_target_device if it finds a match
     }
     if (g_target_device && !g_connected) {
         connect_to_target();
     }
 
-    // Svuota la coda non appena la connessione torna disponibile
+    // Svuota la coda non appena la connessione torna disponibile — Flushes the queue as soon as the connection is available
     if (g_connected) {
         char line[LINE_MAXLEN];
         while (queue_pop(line)) {
@@ -210,7 +210,7 @@ bool ble_printer_send_line(const char *line) {
         try_send_line(line);
         return true;
     }
-    queue_push(line);   // stampante non ancora connessa: mettiamo in coda
+    queue_push(line);   // stampante non ancora connessa: mettiamo in coda — printer not yet connected: queue it
     return false;
 }
 
@@ -218,7 +218,7 @@ bool ble_printer_is_connected(void) {
     return g_connected;
 }
 
-// ─── Collegamento agli hook deboli di printer.cpp ───────────
+// ─── Collegamento agli hook deboli di printer.cpp — wiring to printer.cpp weak hooks ──────
 extern "C" void printer_output_line(const char *line) {
     ble_printer_send_line(line);
 }

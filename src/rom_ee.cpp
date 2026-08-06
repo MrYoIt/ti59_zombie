@@ -13,12 +13,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * In caso contrario, vedi <https://www.gnu.org/licenses/>. — If not, see <https://www.gnu.org/licenses/>.
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
-// rom_ee.cpp � generato da .t59
-// Modulo: Electrical Engineering  |  id="ee"  |  19 programmi  |  ROM_SIZE=5000
-// Codice di sicurezza ROM: 00  (non protetto)
+// rom_ee.cpp — generato da .t59 — generated from .t59
+// Modulo: Electrical Engineering  |  id="ee"  |  19 programmi  |  ROM_SIZE=5000 — Module: Electrical Engineering | id="ee" | 19 programs | ROM_SIZE=5000
+// Codice di sicurezza ROM: 00  (non protetto) — ROM security code: 00 (unprotected)
 
 #include "rom_ee.h"
 

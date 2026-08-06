@@ -13,10 +13,10 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * In caso contrario, vedi <https://www.gnu.org/licenses/>. — If not, see <https://www.gnu.org/licenses/>.
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
-// rom_se.h � generato da .t59
+// rom_se.h — generato da .t59 — generated from .t59
 #ifndef ROM_SE_H
 #define ROM_SE_H
 
@@ -24,4 +24,4 @@
 
 extern const LibraryModule SE_MODULE;
 
-#endif // ROM_SE_H
+#endif // ROM_SE_H — fine guardia include — end of include guard

@@ -1,5 +1,5 @@
 /*
- * TI-59 Zombie — emulatore TI-59 su ESP32-S3 (TMS1500)
+ * TI-59 Zombie — emulatore TI-59 su ESP32-S3 (TMS1500) — TI-59 emulator on the ESP32-S3 (TMS1500)
  * Copyright (C) 2026 Maurizio Petruccioli (MrYo)
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
-// keyboard.h
+// keyboard.h — driver tastiera a scansione — keyboard scan driver
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
@@ -35,7 +35,7 @@ typedef struct _KeyboardState {
     volatile uint8_t  last_col;
     uint32_t last_time_ms;
 
-    // Queue circolare thread-safe per keypress WiFi/keyboard
+    // Queue circolare thread-safe per keypress WiFi/keyboard — Thread-safe circular queue for WiFi/keyboard key presses
     volatile uint8_t key_queue[KBD_QUEUE_SIZE];
     volatile uint8_t key_queue_head;
     volatile uint8_t key_queue_tail;

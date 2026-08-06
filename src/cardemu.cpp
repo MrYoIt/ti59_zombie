@@ -1,5 +1,5 @@
 /*
- * TI-59 Zombie — emulatore TI-59 su ESP32-S3 (TMS1500)
+ * TI-59 Zombie — emulatore TI-59 su ESP32-S3 (TMS1500) — TI-59 emulator on the ESP32-S3 (TMS1500)
  * Copyright (C) 2026 Maurizio Petruccioli (MrYo)
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,7 +18,7 @@
  */
 #include "cardemu.h"
 #include "config.h"
-#include "tms1500.h"   // REG_WIDTH — necessario per non troncare i registri BCD (v. sotto)
+#include "tms1500.h"   // REG_WIDTH — necessario per non troncare i registri BCD (v. sotto) — required to avoid truncating the BCD registers (see below)
 #include <Arduino.h>
 #include <SPIFFS.h>
 #include <string.h>
@@ -75,28 +75,28 @@ static void hex_to_bytes_spaced(const char *hex, uint8_t *out, int *len, int max
 void cardemu_init(CardEmuState *card) {
     memset(card, 0, sizeof(CardEmuState));
     card->active_slot = -1;
-    card->last_written_slot = 0xff;  // nessuno
+    card->last_written_slot = 0xff;  // nessuno — none
 
-    // Niente auto-format qui: begin(true) su partizione vuota/corrotta
-    // blocca il boot per 10-20s di erase (console morta, garbage CDC USB).
-    // La formattazione è manuale: POST /api/fs/format (web).
+    // Niente auto-format qui: begin(true) su partizione vuota/corrotta — No auto-format here: begin(true) on an empty/corrupt partition
+    // blocca il boot per 10-20s di erase (console morta, garbage CDC USB). — stalls boot for 10-20s of erase (dead console, garbage CDC USB).
+    // La formattazione è manuale: POST /api/fs/format (web). — Formatting is manual: POST /api/fs/format (web).
     if (!SPIFFS.begin(false)) {
         Serial.println("[CARD] SPIFFS non montato — schede non disponibili finché non si formatta");
     } else {
         Serial.println("[CARD] SPIFFS OK");
     }
 
-    // Prima leggeva solo il nome (via conteggio di virgolette) e
-    // lasciava prog_a/prog_len_a a zero finché non si chiamava
-    // esplicitamente cardemu_read() per quello slot — cosa che
-    // handle_card_get() e cardemu_list() in wifilink.cpp non fanno
-    // mai, leggendo sempre direttamente card->slots[] in RAM. Il
-    // risultato: dopo ogni riavvio (flash o semplice reset) il nome
-    // della scheda compariva ma il programma risultava vuoto, finché
-    // qualcosa non veniva salvato di nuovo. Ora si carica l'intero
-    // JSON via cardemu_load_from_json(), la stessa funzione già usata
-    // da cardemu_read(), così tutti gli slot sono completi fin da
-    // subito dopo il boot.
+    // Prima leggeva solo il nome (via conteggio di virgolette) e — Previously it read only the name (via a quote count) and
+    // lasciava prog_a/prog_len_a a zero finché non si chiamava — left prog_a/prog_len_a at zero until
+    // esplicitamente cardemu_read() per quello slot — cosa che — cardemu_read() was explicitly called for that slot — which
+    // handle_card_get() e cardemu_list() in wifilink.cpp non fanno — handle_card_get() and cardemu_list() in wifilink.cpp never do,
+    // mai, leggendo sempre direttamente card->slots[] in RAM. Il — always reading card->slots[] in RAM directly. The
+    // risultato: dopo ogni riavvio (flash o semplice reset) il nome — result: after every reboot (flash or plain reset) the card name
+    // della scheda compariva ma il programma risultava vuoto, finché — appeared but the program came out empty, until
+    // qualcosa non veniva salvato di nuovo. Ora si carica l'intero — something was saved again. Now the whole JSON is loaded
+    // JSON via cardemu_load_from_json(), la stessa funzione già usata — via cardemu_load_from_json(), the same function already used
+    // da cardemu_read(), così tutti gli slot sono completi fin da — by cardemu_read(), so all slots are complete right from
+    // subito dopo il boot. — immediately after boot.
     card->num_slots = 0;
     char path[24];
     for (int s = 0; s < CARD_SLOT_COUNT; s++) {
@@ -155,9 +155,9 @@ bool cardemu_read(CardEmuState *card, TMS1500_State *cpu, uint8_t slot) {
 bool cardemu_persist_slot(CardEmuState *card, uint8_t slot) {
     if (slot >= CARD_SLOT_COUNT) return false;
 
-    // Dimensione: nome + overhead JSON + prog_a/prog_b (fino a
-    // CARD_PROG_BYTES*2 caratteri hex ciascuno) + regs
-    // (CARD_REGS_BYTES*2 caratteri hex). Con margine.
+    // Dimensione: nome + overhead JSON + prog_a/prog_b (fino a — Size: name + JSON overhead + prog_a/prog_b (up to
+    // CARD_PROG_BYTES*2 caratteri hex ciascuno) + regs — CARD_PROG_BYTES*2 hex chars each) + regs
+    // (CARD_REGS_BYTES*2 caratteri hex). Con margine. — (CARD_REGS_BYTES*2 hex chars). With margin.
     int cap = CARD_NAME_LEN + CARD_PROG_BYTES*4 + CARD_REGS_BYTES*2 + 128;
     char *json = (char*)malloc(cap);
     if (!json) return false;
@@ -174,12 +174,12 @@ bool cardemu_persist_slot(CardEmuState *card, uint8_t slot) {
     return true;
 }
 
-// AGGIORNAMENTO: il gap descritto qui in precedenza (i registri dati
-// non venivano salvati nel JSON della scheda, solo in state.bin) è
-// stato colmato: cardemu_save_to_json()/cardemu_load_from_json() ora
-// serializzano anche "regs". I buffer di lettura/scrittura file sono
-// stati spostati su heap (malloc) perché con regs inclusi il JSON di
-// una scheda piena può superare 5 KB, troppo per uno stack fisso.
+// AGGIORNAMENTO: il gap descritto qui in precedenza (i registri dati — UPDATE: the gap described here earlier (the data registers
+// non venivano salvati nel JSON della scheda, solo in state.bin) è — were not saved to the card JSON, only in state.bin) has
+// stato colmato: cardemu_save_to_json()/cardemu_load_from_json() ora — been filled: cardemu_save_to_json()/cardemu_load_from_json() now
+// serializzano anche "regs". I buffer di lettura/scrittura file sono — also serialize "regs". The file read/write buffers were
+// stati spostati su heap (malloc) perché con regs inclusi il JSON di — moved to the heap (malloc) because with regs included the JSON of
+// una scheda piena può superare 5 KB, troppo per uno stack fisso. — a full card can exceed 5 KB, too much for a fixed stack.
 bool cardemu_write(CardEmuState *card, TMS1500_State *cpu, uint8_t slot,
                    const char *name) {
     if (slot >= CARD_SLOT_COUNT) return false;
@@ -190,20 +190,20 @@ bool cardemu_write(CardEmuState *card, TMS1500_State *cpu, uint8_t slot,
     memcpy(card->slots[slot].prog_a, cpu->prog, bytes_a);
     card->slots[slot].prog_len_a = bytes_a;
 
-    // BUGFIX: prima si copiavano solo i primi 8 nibble di ciascun
-    // registro (n[0..7]) invece dei REG_WIDTH=18 reali (n[0..1]=segno,
-    // n[2..3]=esponente, n[4..16]=13 cifre di mantissa). Il risultato
-    // era un troncamento silenzioso a ~4 cifre di mantissa salvate su
-    // scheda, con perdita delle altre 9. Va di pari passo con la
-    // dimensione di card->slots[slot].regs[], che deve essere
-    // 100 * REG_WIDTH byte in cardemu.h (vedi nota in fondo al file).
+    // BUGFIX: prima si copiavano solo i primi 8 nibble di ciascun — BUGFIX: previously only the first 8 nibbles of each
+    // registro (n[0..7]) invece dei REG_WIDTH=18 reali (n[0..1]=segno, — register (n[0..7]) were copied instead of the real REG_WIDTH=18 (n[0..1]=sign,
+    // n[2..3]=esponente, n[4..16]=13 cifre di mantissa). Il risultato — n[2..3]=exponent, n[4..16]=13 mantissa digits). The result
+    // era un troncamento silenzioso a ~4 cifre di mantissa salvate su — was a silent truncation to ~4 mantissa digits saved on
+    // scheda, con perdita delle altre 9. Va di pari passo con la — card, with the other 9 lost. It goes hand in hand with the
+    // dimensione di card->slots[slot].regs[], che deve essere — size of card->slots[slot].regs[], which must be
+    // 100 * REG_WIDTH byte in cardemu.h (vedi nota in fondo al file). — 100 * REG_WIDTH bytes in cardemu.h (see note at the end of the file).
     for (int r = 0; r < 100; r++) {
         memcpy(&card->slots[slot].regs[r*REG_WIDTH], cpu->ram[r].n, REG_WIDTH);
     }
     if (!cardemu_persist_slot(card, slot)) return false;
     card->slots[slot].valid = true;
 
-    if (!was_valid) card->num_slots++;   // non contare due volte una sovrascrittura
+    if (!was_valid) card->num_slots++;   // non contare due volte una sovrascrittura — do not count an overwrite twice
     card->last_written_slot = slot;
     Serial.printf("[CARD] Scritto slot %d: %s\n", slot, name);
     return true;
@@ -213,11 +213,11 @@ bool cardemu_load_to_cpu(CardEmuState *card, TMS1500_State *cpu, uint8_t slot) {
     if (slot >= CARD_SLOT_COUNT) return false;
     if (!card->slots[slot].valid) return false;
 
-    // Carica programma nella CPU
+    // Carica programma nella CPU — Load program into the CPU
     tms1500_load_prog(cpu, card->slots[slot].prog_a, card->slots[slot].prog_len_a);
 
-    // Copia i 100 registri dati (REG_WIDTH nibble ciascuno — v. nota
-    // gemella in cardemu_write() sul troncamento a 8 byte corretto qui)
+    // Copia i 100 registri dati (REG_WIDTH nibble ciascuno — v. nota — Copy the 100 data registers (REG_WIDTH nibbles each — see the
+    // gemella in cardemu_write() sul troncamento a 8 byte corretto qui) — twin note in cardemu_write() about the 8-byte truncation fixed here)
     for (int r = 0; r < 100; r++) {
         memcpy(cpu->ram[r].n, &card->slots[slot].regs[r * REG_WIDTH], REG_WIDTH);
     }
@@ -246,7 +246,7 @@ bool cardemu_delete(CardEmuState *card, uint8_t slot) {
     SPIFFS.remove(path);
     card->slots[slot].valid = false;
     memset(card->slots[slot].name, 0, CARD_NAME_LEN);
-    if (card->num_slots > 0) card->num_slots--;  // solo se > 0 per evitare underflow
+    if (card->num_slots > 0) card->num_slots--;  // solo se > 0 per evitare underflow — only if > 0 to avoid underflow
     return true;
 }
 
@@ -305,9 +305,9 @@ bool cardemu_load_from_json(CardEmuState *card, const char *json, uint8_t slot) 
         s->prog_len_b = len;
     }
 
-    // Registri dati (100 × REG_WIDTH nibble). Buffer heap-allocato:
-    // ~5.4 KB (CARD_REGS_BYTES*3+2) è troppo per essere messo sullo
-    // stack insieme al resto in un contesto embedded.
+    // Registri dati (100 × REG_WIDTH nibble). Buffer heap-allocato: — Data registers (100 × REG_WIDTH nibbles). Heap-allocated buffer:
+    // ~5.4 KB (CARD_REGS_BYTES*3+2) è troppo per essere messo sullo — ~5.4 KB (CARD_REGS_BYTES*3+2) is too large to put on the
+    // stack insieme al resto in un contesto embedded. — stack along with the rest in an embedded context.
     p = strstr(json, "\"regs\":\"");
     if (p) {
         p += 8;
@@ -323,10 +323,10 @@ bool cardemu_load_from_json(CardEmuState *card, const char *json, uint8_t slot) 
             free(hex);
         }
     }
-    // Se il JSON non contiene "regs" (es. scheda salvata col firmware
-    // precedente, prima di questo fix), s->regs resta a zero — già
-    // azzerato dal memset(s,0,...) sopra: comportamento sicuro, non un
-    // crash, semplicemente i registri dati non vengono ripristinati.
+    // Se il JSON non contiene "regs" (es. scheda salvata col firmware — If the JSON has no "regs" (e.g. card saved with the previous
+    // precedente, prima di questo fix), s->regs resta a zero — già — firmware, before this fix), s->regs stays zero — already
+    // azzerato dal memset(s,0,...) sopra: comportamento sicuro, non un — zeroed by the memset(s,0,...) above: safe behavior, not a
+    // crash, semplicemente i registri dati non vengono ripristinati. — crash, the data registers are simply not restored.
 
     s->valid = (s->prog_len_a > 0 || strlen(s->name) > 0);
     return s->valid;
@@ -406,8 +406,8 @@ int cardemu_save_to_json(CardEmuState *card, uint8_t slot, char *out, int max) {
     bytes_to_hex(s->prog_a, s->prog_len_a, hex_a, sizeof(hex_a));
     bytes_to_hex(s->prog_b, s->prog_len_b, hex_b, sizeof(hex_b));
 
-    // hex_regs è ~3.6 KB (CARD_REGS_BYTES*2+2): heap-allocato per non
-    // gravare sullo stack insieme ai due buffer sopra.
+    // hex_regs è ~3.6 KB (CARD_REGS_BYTES*2+2): heap-allocato per non — hex_regs is ~3.6 KB (CARD_REGS_BYTES*2+2): heap-allocated so as not
+    // gravare sullo stack insieme ai due buffer sopra. — to burden the stack together with the two buffers above.
     int regs_hexcap = CARD_REGS_BYTES*2+2;
     char *hex_regs = (char*)malloc(regs_hexcap);
     if (!hex_regs) return 0;
@@ -426,30 +426,30 @@ int cardemu_save_to_json(CardEmuState *card, uint8_t slot, char *out, int max) {
     return written;
 }
 
-// ─── Stato persistente CPU (memoria solid state) ──────────
+// ─── Stato persistente CPU (memoria solid state) — Persistent CPU state (solid-state memory) ──────────
 //
-// Formato binario fixed-size, scritto atomicamente via rename:
-//   2 B  magic     0x3560 (bumped da 0x3559 per il cambio formato registri, v. sotto)
-//   2 B  prog_len
-//   2 B  prog_pc
-// 960 B  prog[960]
-//  20 B  labels[10] × uint16_t   (0xFFFF = vuota)
-//1800 B  ram[100] × REG_WIDTH (18 nibble/registro — prima erano 8,
-//        troncando mantissa/esponente: v. BUGFIX in cardemu_write())
-//   1 B  last_written_slot
+// Formato binario fixed-size, scritto atomicamente via rename: — Fixed-size binary format, written atomically via rename:
+//   2 B  magic     0x3560 (bumped da 0x3559 per il cambio formato registri, v. sotto) — 2 B magic 0x3560 (bumped from 0x3559 for the register format change, see below)
+//   2 B  prog_len — 2 B program length
+//   2 B  prog_pc — 2 B program counter
+// 960 B  prog[960] — 960 B program bytes
+//  20 B  labels[10] × uint16_t   (0xFFFF = vuota) — 20 B labels[10] × uint16_t (0xFFFF = empty)
+//1800 B  ram[100] × REG_WIDTH (18 nibble/registro — prima erano 8, — 1800 B ram[100] × REG_WIDTH (18 nibbles/register — previously 8,
+//        troncando mantissa/esponente: v. BUGFIX in cardemu_write()) — truncating mantissa/exponent: see BUGFIX in cardemu_write())
+//   1 B  last_written_slot — 1 B last written slot
 // ─────────────────────────────────
-// ~2787 B totali
+// ~2787 B totali — ~2787 B total
 
 #define STATE_FILE "/state.bin"
 #define STATE_TMP  "/state.tmp"
-// BUGFIX: bump del magic (era 0x3559) perché il layout dei registri è
-// cambiato da 8 a REG_WIDTH(18) byte ciascuno. Con lo stesso magic un
-// vecchio state.bin verrebbe letto con gli offset sbagliati (i 100
-// registri occupavano 800 B, ora 1800 B): il byte finale
-// last_written_slot e, prima ancora, la coda dei registri finirebbero
-// disallineati. Cambiando il magic i vecchi file vengono scartati in
-// modo pulito da cardemu_load_persistent() invece di essere
-// interpretati male.
+// BUGFIX: bump del magic (era 0x3559) perché il layout dei registri è — BUGFIX: magic bumped (was 0x3559) because the register layout
+// cambiato da 8 a REG_WIDTH(18) byte ciascuno. Con lo stesso magic un — changed from 8 to REG_WIDTH(18) bytes each. With the same magic an
+// vecchio state.bin verrebbe letto con gli offset sbagliati (i 100 — old state.bin would be read with the wrong offsets (the 100
+// registri occupavano 800 B, ora 1800 B): il byte finale — registers took 800 B, now 1800 B): the final byte
+// last_written_slot e, prima ancora, la coda dei registri finirebbero — last_written_slot and, before that, the register tail would end up
+// disallineati. Cambiando il magic i vecchi file vengono scartati in — misaligned. Changing the magic makes old files cleanly
+// modo pulito da cardemu_load_persistent() invece di essere — discarded by cardemu_load_persistent() instead of being
+// interpretati male. — misinterpreted.
 #define STATE_MAGIC  0x3560
 
 static void state_file_path(char *buf, size_t sz) {
@@ -481,7 +481,7 @@ void cardemu_save_persistent(CardEmuState *card, TMS1500_State *cpu) {
     SPIFFS.remove(STATE_FILE);
     SPIFFS.rename(STATE_TMP, STATE_FILE);
 
-    // Il salvataggio è riuscito: il programma ora corrisponde al file
+    // Il salvataggio è riuscito: il programma ora corrisponde al file — The save succeeded: the program now matches the file
     tms1500_mark_prog_saved();
 }
 
@@ -489,7 +489,7 @@ void cardemu_load_persistent(CardEmuState *card, TMS1500_State *cpu) {
     if (!SPIFFS.exists(STATE_FILE)) return;
     File f = SPIFFS.open(STATE_FILE, "r");
     if (!f) return;
-    if (f.size() < 7) { f.close(); return; }  // almeno magic + prog_len + prog_pc
+    if (f.size() < 7) { f.close(); return; }  // almeno magic + prog_len + prog_pc — at least magic + prog_len + prog_pc
 
     uint16_t magic;
     if (f.read((uint8_t*)&magic, 2) != 2 || magic != STATE_MAGIC) {

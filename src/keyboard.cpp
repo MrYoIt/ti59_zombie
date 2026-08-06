@@ -1,5 +1,5 @@
 /*
- * TI-59 Zombie — emulatore TI-59 su ESP32-S3 (TMS1500)
+ * TI-59 Zombie — emulatore TI-59 su ESP32-S3 (TMS1500) — TI-59 emulator on the ESP32-S3 (TMS1500)
  * Copyright (C) 2026 Maurizio Petruccioli (MrYo)
  *
  * This program is free software: you can redistribute it and/or modify
@@ -82,7 +82,7 @@ void keyboard_scan(KeyboardState *kbd) {
         digitalWrite(ROW_PINS[r], HIGH);
     }
 
-    // Processa queue: se c'è un tasto in attesa, esponilo
+    // Processa queue: se c'è un tasto in attesa, esponilo — Process the queue: if a key is pending, expose it
     if (!kbd->key_ready && kbd->key_queue_head != kbd->key_queue_tail) {
         uint8_t row, col;
         if (keyboard_dequeue(kbd, &row, &col)) {

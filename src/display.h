@@ -1,5 +1,5 @@
 /*
- * TI-59 Zombie — emulatore TI-59 su ESP32-S3 (TMS1500)
+ * TI-59 Zombie — emulatore TI-59 su ESP32-S3 (TMS1500) — TI-59 emulator on the ESP32-S3 (TMS1500)
  * Copyright (C) 2026 Maurizio Petruccioli (MrYo)
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,18 +18,18 @@
  */
 #pragma once
 /*
- * display.h — Driver HT16K33 (16x8, I2C) per display a 12 digit del TI-59
- * I2C: SDA=19 SCL=20 (indirizzo 0x70, pull-up 4.7k sui due fili)
+ * display.h — Driver HT16K33 (16x8, I2C) per display a 12 digit del TI-59 — HT16K33 (16x8, I2C) driver for the TI-59 12-digit display
+ * I2C: SDA=19 SCL=20 (indirizzo 0x70, pull-up 4.7k sui due fili) — I2C: SDA=19 SCL=20 (address 0x70, 4.7k pull-ups on both wires)
  *
- * Mappatura hardware (16 colonne × 8 righe del driver):
- *   colonna 0 = D12 (esponente, digit più a sinistra)
- *   colonna 11 = D1  (cifra meno significativa della mantissa)
- *   colonne 12-15 = libere (riservate a futuri annunciatori: 2nd, DEG...)
- *   riga 0..7 = segmenti A..G + DP (bit0=A ... bit6=G, bit7=DP)
+ * Mappatura hardware (16 colonne × 8 righe del driver): — Hardware mapping (driver's 16 columns × 8 rows):
+ *   colonna 0 = D12 (esponente, digit più a sinistra) — column 0 = D12 (exponent, leftmost digit)
+ *   colonna 11 = D1  (cifra meno significativa della mantissa) — column 11 = D1 (least significant mantissa digit)
+ *   colonne 12-15 = libere (riservate a futuri annunciatori: 2nd, DEG...) — columns 12-15 = free (reserved for future annunciators: 2nd, DEG...)
+ *   riga 0..7 = segmenti A..G + DP (bit0=A ... bit6=G, bit7=DP) — row 0..7 = segments A..G + DP (bit0=A ... bit6=G, bit7=DP)
  *
- * Le due colonne libere NON vengono toccate: il display VFD originale ha
- * anche annunciatori (DEG/RAD/GRAD, 2nd, INV, USER...) che un domani si
- * possono pilotare nelle colonne 12-15 aggiungendo un map in questo file.
+ * Le due colonne libere NON vengono toccate: il display VFD originale ha — The two free columns are NOT touched: the original VFD display also has
+ * anche annunciatori (DEG/RAD/GRAD, 2nd, INV, USER...) che un domani si — annunciators (DEG/RAD/GRAD, 2nd, INV, USER...) that could one day be
+ * possono pilotare nelle colonne 12-15 aggiungendo un map in questo file. — driven in columns 12-15 by adding a map in this file.
  */
 #include <stdint.h>
 #include <stdbool.h>
@@ -40,14 +40,14 @@ struct SystemSettings;
 typedef struct SystemSettings SystemSettings;
 #endif
 
-// Comandi HT16K33 (register/command)
-#define HT16K33_OSC_ON       0x21   // system setup: oscillator on
-#define HT16K33_DISP_ON      0x81   // display setup: display on, blink off
-#define HT16K33_DISP_OFF     0x80   // display setup: display off
-#define HT16K33_BRIGHT(x)   (0xE0 | ((x) & 0x0F))   // dimming 0-15
-#define HT16K33_RAM_BASE     0x00   // primo byte RAM display (colonna 0)
+// Comandi HT16K33 (register/command) — HT16K33 commands (register/command)
+#define HT16K33_OSC_ON       0x21   // system setup: oscillatore acceso — system setup: oscillator on
+#define HT16K33_DISP_ON      0x81   // display setup: display acceso, blink spento — display setup: display on, blink off
+#define HT16K33_DISP_OFF     0x80   // display setup: display spento — display setup: display off
+#define HT16K33_BRIGHT(x)   (0xE0 | ((x) & 0x0F))   // attenuazione 0-15 — dimming 0-15
+#define HT16K33_RAM_BASE     0x00   // primo byte RAM display (colonna 0) — first display RAM byte (column 0)
 
-// Segmenti 7-seg (bitmask, bit0=A ... bit6=G, bit7=DP)
+// Segmenti 7-seg (bitmask, bit0=A ... bit6=G, bit7=DP) — 7-seg segments (bitmask, bit0=A ... bit6=G, bit7=DP)
 #define SEG_A  0x01
 #define SEG_B  0x02
 #define SEG_C  0x04
@@ -58,11 +58,11 @@ typedef struct SystemSettings SystemSettings;
 #define SEG_DP 0x80
 
 typedef struct _DisplayState {
-    uint8_t  segments[12];   // pattern segmenti per digit D1..D12
+    uint8_t  segments[12];   // pattern segmenti per digit D1..D12 — segment patterns for digits D1..D12
     bool     dirty;
     uint8_t  brightness;     // 0-15
-    bool     calc_mode;      // mostra simbolo "⌐" su digit 12
-    bool     present;        // HT16K33 rilevato su I2C (trap hardware)
+    bool     calc_mode;      // mostra simbolo "⌐" su digit 12 — shows the "⌐" symbol on digit 12
+    bool     present;        // HT16K33 rilevato su I2C (trap hardware) — HT16K33 detected on I2C (hardware trap)
 } DisplayState;
 
 void display_init(DisplayState *disp);

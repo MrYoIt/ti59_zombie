@@ -1,5 +1,5 @@
 /*
- * TI-59 Zombie — emulatore TI-59 su ESP32-S3 (TMS1500)
+ * TI-59 Zombie — emulatore TI-59 su ESP32-S3 (TMS1500) — TI-59 emulator on ESP32-S3 (TMS1500)
  * Copyright (C) 2026 Maurizio Petruccioli (MrYo)
  *
  * This program is free software: you can redistribute it and/or modify
@@ -13,15 +13,15 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * Dovresti aver ricevuto una copia della GNU General Public License insieme a questo programma; se non è così, vedi <https://www.gnu.org/licenses/>. — You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 /*
- * wifilink.c — Web server + IDE embedded per TI-59 Zombie
+ * wifilink.c — Web server + IDE embedded per TI-59 Zombie — Web server + embedded IDE for TI-59 Zombie
  *
- * v1.5  Fix DP posizionato a destra del digit (non nel prossimo)
- * v1.6  Aggiunto indicatore 2ND nella mode-bar
- * v1.7  Tasti più piccoli, più spaziati e overlay codici tasto attivabile via web
+ * v1.5  Fix DP posizionato a destra del digit (non nel prossimo) — DP placed to the right of the digit (not in the next one)
+ * v1.6  Aggiunto indicatore 2ND nella mode-bar — added 2ND indicator in the mode-bar
+ * v1.7  Tasti più piccoli, più spaziati e overlay codici tasto attivabile via web — smaller keys, more spacing and key-code overlay toggleable via web
  */
 
 #include "wifilink.h"
@@ -42,30 +42,30 @@
 #include <string.h>
 #include <stdio.h>
 
-// get_mnemonic_name() dichiarata in tms1500.h, definita in tms1500.cpp
+// get_mnemonic_name() dichiarata in tms1500.h, definita in tms1500.cpp — declared in tms1500.h, defined in tms1500.cpp
 
 /* ═══════════════════════════════════════════════════════════════════
-   TABELLA DI TRADUZIONE (i18n) — file JS condiviso da TUTTE le pagine
-   (incluso via <script src="/i18n.js"> prima dello script di ogni
-   pagina), così esiste UNA sola copia in flash e UNA sola tabella da
-   tenere aggiornata, non 4 duplicate.
+   TABELLA DI TRADUZIONE (i18n) — file JS condiviso da TUTTE le pagine — TRANSLATION TABLE (i18n) — JS file shared by ALL pages
+   (incluso via <script src="/i18n.js"> prima dello script di ogni — (included via <script src="/i18n.js"> before the script of every
+   pagina), così esiste UNA sola copia in flash e UNA sola tabella da — page), so there is ONE copy in flash and ONE table to
+   tenere aggiornata, non 4 duplicate. — keep updated, not 4 duplicates.
 
-   FORMATO — una riga per chiave, colonne IT/EN affiancate: aggiungere
-   o correggere una traduzione è aggiungere/editare UNA riga qui.
+   FORMATO — una riga per chiave, colonne IT/EN affiancate: aggiungere — FORMAT — one row per key, IT/EN columns side by side: adding
+   o correggere una traduzione è aggiungere/editare UNA riga qui. — or fixing a translation is adding/editing ONE row here.
 
-   USO:
-   - Testo statico in HTML: data-i18n="chiave" (assegna .innerHTML).
-     Per placeholder: data-i18n-ph="chiave". Per title: data-i18n-title="chiave".
-   - Stringhe generate da JS: t('chiave') al posto del letterale italiano.
-   - setLang('it'|'en') cambia lingua, salva la scelta in localStorage
-     (persiste tra riavvii del browser) e re-invoca applyI18n().
-   Il selettore lingua vive solo in /manage, ma localStorage è
-   condiviso da tutte le pagine dello stesso device: applyI18n() gira
-   ovunque a DOMContentLoaded, quindi la scelta si applica dappertutto.
+   USO: — USAGE:
+   - Testo statico in HTML: data-i18n="chiave" (assegna .innerHTML). — Static text in HTML: data-i18n="key" (assigns .innerHTML).
+     Per placeholder: data-i18n-ph="chiave". Per title: data-i18n-title="chiave". — For placeholder: data-i18n-ph="key". For title: data-i18n-title="key".
+   - Stringhe generate da JS: t('chiave') al posto del letterale italiano. — JS-generated strings: t('key') instead of the Italian literal.
+   - setLang('it'|'en') cambia lingua, salva la scelta in localStorage — setLang('it'|'en') switches language, saves the choice in localStorage
+     (persiste tra riavvii del browser) e re-invoca applyI18n(). — (persists across browser restarts) and re-invokes applyI18n().
+   Il selettore lingua vive solo in /manage, ma localStorage è — The language selector lives only in /manage, but localStorage is
+   condiviso da tutte le pagine dello stesso device: applyI18n() gira — shared by all pages of the same device: applyI18n() runs
+   ovunque a DOMContentLoaded, quindi la scelta si applica dappertutto. — everywhere at DOMContentLoaded, so the choice applies everywhere.
    ═══════════════════════════════════════════════════════════════════ */
 static const char I18N_JS[] = R"jsrc(
 const I18N_TABLE = [
-  // ── comuni a più pagine ──────────────────────────────────────────
+  // ── comuni a più pagine — common to multiple pages ─────────────
   ['nav_back_calc',      '&larr; Calcolatrice',                 '&larr; Calculator'],
   ['nav_manage',         'Overlay &rarr;',                       'Overlay &rarr;'],
   ['status_loading',     'Caricamento...',                       'Loading...'],
@@ -74,7 +74,7 @@ const I18N_TABLE = [
   ['confirm_delete',     'Eliminare?',                            'Delete?'],
   ['lang_label',         'Lingua',                                'Language'],
 
-  // ── /setup (captive portal WiFi) ─────────────────────────────────
+  // ── /setup (captive portal WiFi) — captive portal (WiFi) setup ──
   ['setup_h2_networks',  'Reti disponibili',                      'Available networks'],
   ['setup_scanning',     'Scansione...',                          'Scanning...'],
   ['setup_btn_refresh',  '&#x27F3; Aggiorna',                     '&#x27F3; Refresh'],
@@ -95,7 +95,7 @@ const I18N_TABLE = [
   ['setup_trying_connect','Tentativo connessione...',             'Attempting connection...'],
   ['setup_confirm_clear_all','Cancellare tutte?',                 'Delete all?'],
 
-  // ── /manage ───────────────────────────────────────────────────────
+  // ── /manage — management ──────────────────────────────────────
   ['mgr_h2_cards',       'Schede programma',                      'Program cards'],
   ['mgr_card_name_ph',   'Nome scheda',                           'Card name'],
   ['mgr_btn_write',      'WRITE',                                  'WRITE'],
@@ -154,7 +154,7 @@ const I18N_TABLE = [
   ['mgr_status_module_engaged','Modulo innestato: ',                'Module engaged: '],
   ['mgr_status_module_none','Nessun modulo innestato',              'No module engaged'],
 
-  // ── /overlays ─────────────────────────────────────────────────────
+  // ── /overlays — overlays ───────────────────────────────────────
   ['ovl_h1',             'OVERLAY TASTIERA',                       'KEYBOARD OVERLAY'],
   ['nav_manage_back',    '&larr; Gestione',                        '&larr; Management'],
   ['ovl_h2_file',        'File overlay (unico, tutti i moduli)',   'Overlay file (single, all modules)'],
@@ -240,11 +240,11 @@ const I18N_TABLE = [
                           ' — upload them from /manage (file upload), otherwise the card area stays empty.'],
   ['ovl_cards_module_name', 'Schede magnetiche',                    'Magnetic cards'],
 
-  // ── calcolatrice (WEB_IDE) — NOTA: le legende dei tasti (SBR, STO,
-  // RCL, sin, cos, Lbl, Rad, Pgm...) NON vengono tradotte di proposito:
-  // sono la riproduzione esatta dei tasti fisici del TI-59 reale, che
-  // restano in inglese anche sugli esemplari venduti in Italia — non
-  // sono testo di interfaccia, sono hardware.
+  // ── calcolatrice (WEB_IDE): NOTA: le legende dei tasti (SBR, STO, — calculator (WEB_IDE): NOTE: the key legends (SBR, STO,
+  // RCL, sin, cos, Lbl, Rad, Pgm...) NON vengono tradotte di proposito: — RCL, sin, cos, Lbl, Rad, Pgm...) are intentionally NOT translated:
+  // sono la riproduzione esatta dei tasti fisici del TI-59 reale, che — they are the exact reproduction of the real TI-59 physical keys, which
+  // restano in inglese anche sugli esemplari venduti in Italia — non — stay in English even on units sold in Italy — not
+  // sono testo di interfaccia, sono hardware. — they are interface text, they are hardware.
   ['ide_tooltip_oldnew', 'Old = timing/errori autentici TI-59, New = calcolo istantaneo. Clic per alternare (o combo +,-,x,/ sulla tastiera)',
                           'Old = authentic TI-59 timing/errors, New = instant calculation. Click to toggle (or +,-,x,/ combo on the keyboard)'],
   ['ide_tooltip_overlay','Overlay codici tasto (azzurro)',         'Key code overlay (blue)'],
@@ -296,46 +296,46 @@ document.addEventListener('DOMContentLoaded', applyI18n);
 )jsrc";
 
 /* ═══════════════════════════════════════════════════════════════════
-   RENDERING CARD SVG — file JS condiviso da /overlays (anteprima) e
-   dalla calcolatrice (/, riquadro sopra la tastiera): un solo posto,
-   così non capita più che una pagina lo veda e l'altra no
+   RENDERING CARD SVG — file JS condiviso da /overlays (anteprima) e — CARD SVG RENDERING — JS file shared by /overlays (preview) and
+   dalla calcolatrice (/, riquadro sopra la tastiera): un solo posto, — the calculator (/, box above the keyboard): a single place,
+   così non capita più che una pagina lo veda e l'altra no — so it no longer happens that one page sees it and the other doesn't
    ("renderCardSVG is not defined").
 
-   FIX ATTRIBUTI: ATTR (s/e/c/m/fN) applicata SEMPRE, a ogni riga,
-   GRID o FREE che sia — prima veniva ignorata per le celle GRID e per
-   le righe FREE con KEY 1-2 (posizione/font hardcoded lì dentro).
+   FIX ATTRIBUTI: ATTR (s/e/c/m/fN) applicata SEMPRE, a ogni riga, — ATTRIBUTES FIX: ATTR (s/e/c/m/fN) always applied, on every row,
+   GRID o FREE che sia — prima veniva ignorata per le celle GRID e per — whether GRID or FREE — it used to be ignored for GRID cells and for
+   le righe FREE con KEY 1-2 (posizione/font hardcoded lì dentro). — FREE rows with KEY 1-2 (position/font hardcoded there).
 
-   POSIZIONI DEL TESTO — per adattarle al TUO SVG (card_grid.svg /
-   card_free.svg): coordinate nelle stesse unità del viewBox
-   dell'SVG (qui 544 x 120). Apri il .svg (è XML), guarda dove sono le
-   linee divisorie (<line x1=".." y1=".." x2=".." y2="..">), copia
-   quei numeri in GRID_COL_X/GRID_ROW_Y/FREE_ROW_Y sotto. Solo numeri
-   in un file JS, nessuna ricompilazione del firmware.
+   POSIZIONI DEL TESTO — per adattarle al TUO SVG (card_grid.svg / — TEXT POSITIONS — to adapt them to YOUR SVG (card_grid.svg /
+   card_free.svg): coordinate nelle stesse unità del viewBox — card_free.svg): coordinates in the same units as the SVG viewBox
+   dell'SVG (qui 544 x 120). Apri il .svg (è XML), guarda dove sono le — (here 544 x 120). Open the .svg (it is XML), look at where the
+   linee divisorie (<line x1=".." y1=".." x2=".." y2="..">), copia — divider lines are (<line x1=".." y1=".." x2=".." y2="..">), copy
+   quei numeri in GRID_COL_X/GRID_ROW_Y/FREE_ROW_Y sotto. Solo numeri — those numbers into GRID_COL_X/GRID_ROW_Y/FREE_ROW_Y below. Only numbers
+   in un file JS, nessuna ricompilazione del firmware. — in a JS file, no firmware recompilation.
    ═══════════════════════════════════════════════════════════════════ */
 static const char CARDRENDER_JS[] = R"jsrc(
 const CARD_W = 544, CARD_H = 120;
 
-// Griglia A-E: 5 colonne, 2 righe (normale + 2nd). Righe libere
-// (FREE): Y per numero di riga (il KEY in overlays.txt: 1, 2, 3...).
-// MARGIN_LEFT/RIGHT: distanza dal bordo per l'allineamento 's'/'e' e
-// per il primo/ultimo blocco quando una riga FREE viene spezzata
-// (4+ spazi nel TESTO — v. renderCardSVG sotto). Questi sono i
-// DEFAULT — se esiste /overlay_pos.json sul device (v.
-// loadCardPositions() sotto) vengono sovrascritti a runtime, senza
-// bisogno di riflashare per aggiustare una posizione.
+// Griglia A-E: 5 colonne, 2 righe (normale + 2nd). Righe libere — Grid A-E: 5 columns, 2 rows (normal + 2nd). Free rows
+// (FREE): Y per numero di riga (il KEY in overlays.txt: 1, 2, 3...). — (FREE): Y per row number (the KEY in overlays.txt: 1, 2, 3...).
+// MARGIN_LEFT/RIGHT: distanza dal bordo per l'allineamento 's'/'e' e — MARGIN_LEFT/RIGHT: distance from the edge for the 's'/'e' alignment and
+// per il primo/ultimo blocco quando una riga FREE viene spezzata — for the first/last block when a FREE row is split
+// (4+ spazi nel TESTO — v. renderCardSVG sotto). Questi sono i — (4+ spaces in TEXT — see renderCardSVG below). These are the
+// DEFAULT — se esiste /overlay_pos.json sul device (v. — DEFAULTS — if /overlay_pos.json exists on the device (see
+// loadCardPositions() sotto) vengono sovrascritti a runtime, senza — loadCardPositions() below) they are overwritten at runtime, without
+// bisogno di riflashare per aggiustare una posizione. — needing to reflash to adjust a position.
 const DEFAULT_GRID_COL_X = [54.4, 163.2, 272.0, 380.8, 489.6];
 const DEFAULT_GRID_ROW_Y = [73.0, 101.0];
 const DEFAULT_FREE_ROW_Y = { 1: 18, 2: 42, 3: 70, 4: 100, 5: 100 };
 const DEFAULT_MARGIN_LEFT = 6;
 const DEFAULT_MARGIN_RIGHT = 6;
-// Posizione Y del nome della scheda magnetica, in unità viewBox
-// (544x120). Sulla card_card.svg il nome va nella banda superiore
-// (centro della fascia ~y=42). Modificabile dal pannello posizioni
-// della pagina /overlays, come tutte le altre coordinate.
+// Posizione Y del nome della scheda magnetica, in unità viewBox — Y position of the magnetic card name, in viewBox units
+// (544x120). Sulla card_card.svg il nome va nella banda superiore — (544x120). On card_card.svg the name goes in the top band
+// (centro della fascia ~y=42). Modificabile dal pannello posizioni — (center of the band ~y=42). Adjustable from the positions panel
+// della pagina /overlays, come tutte le altre coordinate. — of the /overlays page, like all the other coordinates.
 const DEFAULT_CARD_NAME_Y = 42;
-// Posizione X del nome della scheda magnetica, in unità viewBox
-// (544x120): 272 = centro orizzontale. Modificabile dal pannello
-// posizioni della pagina /overlays, come le altre coordinate.
+// Posizione X del nome della scheda magnetica, in unità viewBox — X position of the magnetic card name, in viewBox units
+// (544x120): 272 = centro orizzontale. Modificabile dal pannello — (544x120): 272 = horizontal center. Adjustable from the panel
+// posizioni della pagina /overlays, come le altre coordinate. — positions of the /overlays page, like the other coordinates.
 const DEFAULT_CARD_NAME_X = 272;
 let GRID_COL_X = DEFAULT_GRID_COL_X.slice();
 let GRID_ROW_Y = DEFAULT_GRID_ROW_Y.slice();
@@ -344,19 +344,19 @@ let MARGIN_LEFT = DEFAULT_MARGIN_LEFT;
 let MARGIN_RIGHT = DEFAULT_MARGIN_RIGHT;
 let CARD_NAME_Y = DEFAULT_CARD_NAME_Y;
 let CARD_NAME_X = DEFAULT_CARD_NAME_X;
-// Template SVG in strati (dal PRIMO = strato superiore all'ULTIMO =
-// strato inferiore), disegnati uno sopra l'altro come background
-// multipli CSS col testo overlay sopra tutti. Vuoto = comportamento
-// standard (un solo template scelto da renderCardSVG in base al tipo).
+// Template SVG in strati (dal PRIMO = strato superiore all'ULTIMO = — SVG templates in layers (from the FIRST = top layer to the LAST =
+// strato inferiore), disegnati uno sopra l'altro come background — bottom layer), drawn one on top of the other as CSS backgrounds
+// multipli CSS col testo overlay sopra tutti. Vuoto = comportamento — with the overlay text on top of all. Empty = standard behaviour
+// standard (un solo template scelto da renderCardSVG in base al tipo). — (a single template chosen by renderCardSVG based on the type).
 let CARD_TEMPLATES = [];
 
-// Carica /overlay_pos.json dal device, se esiste, e sovrascrive le
-// costanti sopra. Fire-and-forget: parte subito al caricamento dello
-// script, prima che l'utente interagisca — se arriva in tempo aggiorna
-// i valori, altrimenti restano i default (mai un errore bloccante).
-// Retry brevi (max 3): le card ora hanno i template top.svg/base.svg
-// come default incorporato, quindi un fetch fallito non fa più cadere
-// il rendering sul template sbagliato né introduce attese lunghe.
+// Carica /overlay_pos.json dal device, se esiste, e sovrascrive le — Loads /overlay_pos.json from the device, if present, and overwrites the
+// costanti sopra. Fire-and-forget: parte subito al caricamento dello — constants above. Fire-and-forget: starts right away when the
+// script, prima che l'utente interagisca — se arriva in tempo aggiorna — script loads, before the user interacts — if it arrives in time it updates
+// i valori, altrimenti restano i default (mai un errore bloccante). — the values, otherwise the defaults stay (never a blocking error).
+// Retry brevi (max 3): le card ora hanno i template top.svg/base.svg — Short retries (max 3): cards now have the top.svg/base.svg templates
+// come default incorporato, quindi un fetch fallito non fa più cadere — as built-in default, so a failed fetch no longer makes
+// il rendering sul template sbagliato né introduce attese lunghe. — the rendering fall back to the wrong template nor adds long waits.
 async function loadCardPositions() {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
@@ -371,9 +371,9 @@ async function loadCardPositions() {
       if (typeof p.card_name_y === 'number') CARD_NAME_Y = p.card_name_y;
       if (typeof p.card_name_x === 'number') CARD_NAME_X = p.card_name_x;
       if (Array.isArray(p.templates)) CARD_TEMPLATES = p.templates.map(t => String(t));
-      return true;   // successo
+      return true;   // successo — success
     } catch (e) {
-      if (attempt === 2) return false;   // rinuncia: restano i default
+      if (attempt === 2) return false;   // rinuncia: restano i default — give up: the defaults stay
       await new Promise(res => setTimeout(res, 250 + attempt * 150));
     }
   }
@@ -381,14 +381,14 @@ async function loadCardPositions() {
 }
 loadCardPositions();
 
-// Verifica che i due template SVG esistano davvero su SPIFFS (causa
-// più comune per cui il riquadro card risulta vuoto: i file caricati
-// hanno ancora il vecchio nome ml1_01.svg/ml1_02.svg invece di
-// card_free.svg/card_grid.svg). Ritorna un array dei nomi mancanti.
+// Verifica che i due template SVG esistano davvero su SPIFFS (causa — Verifies that the two SVG templates actually exist on SPIFFS (most
+// più comune per cui il riquadro card risulta vuoto: i file caricati — common cause of an empty card box: the uploaded files
+// hanno ancora il vecchio nome ml1_01.svg/ml1_02.svg invece di — still have the old name ml1_01.svg/ml1_02.svg instead of
+// card_free.svg/card_grid.svg). Ritorna un array dei nomi mancanti. — card_free.svg/card_grid.svg). Returns an array of the missing names.
 async function checkSvgTemplates() {
-  // card_card.svg non c'è più nel design (sostituito dagli strati
-  // configurati, es. top.svg/base.svg): lo si controlla solo se viene
-  // richiesto esplicitamente come template dal pannello posizioni.
+  // card_card.svg non c'è più nel design (sostituito dagli strati — card_card.svg is no longer in the design (replaced by the configured
+  // configurati, es. top.svg/base.svg): lo si controlla solo se viene — layers, e.g. top.svg/base.svg): it is only checked if it is
+  // richiesto esplicitamente come template dal pannello posizioni. — explicitly requested as a template from the positions panel.
   const names = ['card_free.svg', 'card_grid.svg'];
   CARD_TEMPLATES.forEach(t => {
     const n = String(t).replace(/^\/+/, '');
@@ -410,14 +410,14 @@ function escHtml(s) {
   return d.innerHTML;
 }
 
-// ── Rettangoli attorno ai comandi tastiera ─────────────────────────
-// Nei testi overlay i token che corrispondono a comandi della tastiera
-// TI-59 (mnemonici come SBR/CLR/STO/LBL e gli operatori matematici
-// + - × ÷ =) vengono disegnati dentro un rettangolo, come nelle card
-// cartacee originali. Il match è case-insensitive e richiede che il
-// comando sia "isolato" (non incollato dentro una parola): così
-// "STO 00" boxa solo STO, "L.R. INIT:SBR CLR" boxa SBR e CLR ma non
-// INIT né L.R., e i numeri registro ("00") restano fuori dal box.
+// ── Rettangoli attorno ai comandi tastiera — Rectangles around keyboard commands ──
+// Nei testi overlay i token che corrispondono a comandi della tastiera — In overlay texts the tokens matching keyboard commands
+// TI-59 (mnemonici come SBR/CLR/STO/LBL e gli operatori matematici — of the TI-59 (mnemonics like SBR/CLR/STO/LBL and the math operators
+// + - × ÷ =) vengono disegnati dentro un rettangolo, come nelle card — + - × ÷ =) are drawn inside a rectangle, like on the original paper
+// cartacee originali. Il match è case-insensitive e richiede che il — cards. The match is case-insensitive and requires the
+// comando sia "isolato" (non incollato dentro una parola): così — command to be "isolated" (not glued inside a word): so
+// "STO 00" boxa solo STO, "L.R. INIT:SBR CLR" boxa SBR e CLR ma non — "STO 00" boxes only STO, "L.R. INIT:SBR CLR" boxes SBR and CLR but not
+// INIT né L.R., e i numeri registro ("00") restano fuori dal box. — INIT nor L.R., and register numbers ("00") stay outside the box.
 function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
 const KEY_COMMANDS = [
@@ -442,11 +442,11 @@ function boxKeyCommands(text) {
   );
 }
 
-// Apice/pedice nel testo overlay, con marcatori espliciti: ^+ apre
-// l'apice, ^- apre il pedice, ^^ chiude e torna al testo normale.
-// Es. "X^+2^^" = X con 2 in apice; "10^-3^^" = 10 con -3 in pedice.
-// Applicata PRIMA di boxKeyCommands, così i comandi scritti dentro un
-// apice/pedice restano boxati come quelli normali.
+// Apice/pedice nel testo overlay, con marcatori espliciti: ^+ apre — Superscript/subscript in the overlay text, with explicit markers: ^+ opens
+// l'apice, ^- apre il pedice, ^^ chiude e torna al testo normale. — superscript, ^- opens subscript, ^^ closes and returns to normal text.
+// Es. "X^+2^^" = X con 2 in apice; "10^-3^^" = 10 con -3 in pedice. — E.g. "X^+2^^" = X with 2 as superscript; "10^-3^^" = 10 with -3 as subscript.
+// Applicata PRIMA di boxKeyCommands, così i comandi scritti dentro un — Applied BEFORE boxKeyCommands, so the commands written inside a
+// apice/pedice restano boxati come quelli normali. — superscript/subscript stay boxed like normal ones.
 function supSub(text) {
   if (!text || text.indexOf('^') < 0) return text;
   let out = '', state = '';
@@ -473,8 +473,8 @@ function supSub(text) {
   return out;
 }
 
-// Decodifica ATTR (s/e/c/m/fN) in allineamento + dimensione font.
-// Applicata SEMPRE (fix: prima veniva ignorata in diversi casi).
+// Decodifica ATTR (s/e/c/m/fN) in allineamento + dimensione font. — Decodes ATTR (s/e/c/m/fN) into alignment + font size.
+// Applicata SEMPRE (fix: prima veniva ignorata in diversi casi). — Always applied (fix: it used to be ignored in several cases).
 function applyAttr(attr, defaultFs) {
   attr = attr || '';
   let align = 'c';
@@ -501,70 +501,70 @@ function renderCardSVG(mod, prog, rows, cardName) {
   rows = rows || [];
   const gridRows = rows.filter(r => r.type === 'GRID');
   const freeRows = rows.filter(r => r.type === 'FREE');
-  // Una scheda magnetica attiva si vede SEMPRE, anche senza righe
-  // overlay: strati top.svg + base.svg + nome scheda in alto. Per
-  // tutto il resto, senza righe non c'è niente da disegnare.
+  // Una scheda magnetica attiva si vede SEMPRE, anche senza righe — An active magnetic card is ALWAYS shown, even without overlay
+  // overlay: strati top.svg + base.svg + nome scheda in alto. Per — rows: top.svg + base.svg layers + card name on top. For
+  // tutto il resto, senza righe non c'è niente da disegnare. — everything else, without rows there is nothing to draw.
   if (!gridRows.length && !freeRows.length && !hasName && !CARD_TEMPLATES.length && !isCard) return '<div class="card-placeholder"></div>';
-  // Il template (sfondo con le linee divisorie) dipende solo dalla
-  // presenza della griglia, non dalla prima riga del file. Per le schede
-  // magnetiche il design è definito dagli strati (es. top.svg + base.svg):
-  // di default SONO top.svg + base.svg incorporati qui sotto, così la
-  // card non dipende dal fetch di /api/card_positions (che nel burst di
-  // richieste della pagina può essere scartato dal server e lasciare
-  // CARD_TEMPLATES vuoto, facendo cadere la card sul fallback ambrato).
-  // Se /api/card_positions arriva (pannello posizioni), CARD_TEMPLATES
-  // lo sovrascrive. Le ROM restano sui template universali griglia/free.
+  // Il template (sfondo con le linee divisorie) dipende solo dalla — The template (background with the divider lines) depends only on the
+  // presenza della griglia, non dalla prima riga del file. Per le schede — presence of the grid, not on the first row of the file. For magnetic
+  // magnetiche il design è definito dagli strati (es. top.svg + base.svg): — cards the design is defined by the layers (e.g. top.svg + base.svg):
+  // di default SONO top.svg + base.svg incorporati qui sotto, così la — by default they ARE top.svg + base.svg embedded below, so the
+  // card non dipende dal fetch di /api/card_positions (che nel burst di — card does not depend on the fetch of /api/card_positions (which in the
+  // richieste della pagina può essere scartato dal server e lasciare — page request burst can be dropped by the server and leave
+  // CARD_TEMPLATES vuoto, facendo cadere la card sul fallback ambrato). — CARD_TEMPLATES empty, making the card fall back to the amber fallback).
+  // Se /api/card_positions arriva (pannello posizioni), CARD_TEMPLATES — If /api/card_positions arrives (positions panel), CARD_TEMPLATES
+  // lo sovrascrive. Le ROM restano sui template universali griglia/free. — overrides it. ROMs stay on the universal grid/free templates.
   const hasGrid = gridRows.length > 0;
   const tmpl = hasGrid ? '/card_grid.svg' : '/card_free.svg';
   const w = CARD_W, h = CARD_H;
-  // Se CARD_TEMPLATES è configurato (pannello posizioni), usa QUEI
-  // file in strati sovrapposti (primo = sopra, ultimo = sotto) al
-  // posto del default: background multipli CSS, il testo overlay
-  // viene disegnato sopra a tutti. Senza config, le card magnetiche
-  // usano comunque top.svg + base.svg; le ROM il template unico.
+  // Se CARD_TEMPLATES è configurato (pannello posizioni), usa QUEI — If CARD_TEMPLATES is configured (positions panel), use THOSE
+  // file in strati sovrapposti (primo = sopra, ultimo = sotto) al — files in overlapping layers (first = top, last = bottom) instead
+  // posto del default: background multipli CSS, il testo overlay — of the default: multiple CSS backgrounds, the overlay text
+  // viene disegnato sopra a tutti. Senza config, le card magnetiche — is drawn on top of all. Without config, magnetic cards
+  // usano comunque top.svg + base.svg; le ROM il template unico. — still use top.svg + base.svg; ROMs the single template.
   const defaultTmpls = isCard ? ['/top.svg', '/base.svg'] : [tmpl];
-  // CARD_TEMPLATES (pannello posizioni) vale SOLO per le card
-  // magnetiche: quelle configurano i propri strati (es. top.svg +
-  // base.svg). Le ROM usano SEMPRE il template universale (card_grid /
-  // card_free) e devono ignorare CARD_TEMPLATES — altrimenti ereditano
-  // gli strati delle card (che possono contenere testo stampato) e si
-  // vede la stessa riga disegnata due volte: una volta come testo HTML
-  // overlay e una volta come parte del template SVG.
+  // CARD_TEMPLATES (pannello posizioni) vale SOLO per le card — CARD_TEMPLATES (positions panel) applies ONLY to magnetic
+  // magnetiche: quelle configurano i propri strati (es. top.svg + — cards: they configure their own layers (e.g. top.svg +
+  // base.svg). Le ROM usano SEMPRE il template universale (card_grid / — base.svg). ROMs ALWAYS use the universal template (card_grid /
+  // card_free) e devono ignorare CARD_TEMPLATES — altrimenti ereditano — card_free) and must ignore CARD_TEMPLATES — otherwise they inherit
+  // gli strati delle card (che possono contenere testo stampato) e si — the card layers (which may contain printed text) and the
+  // vede la stessa riga disegnata due volte: una volta come testo HTML — same row is drawn twice: once as HTML overlay text
+  // overlay e una volta come parte del template SVG. — and once as part of the SVG template.
   const tmpls = isCard ? ((CARD_TEMPLATES.length) ? CARD_TEMPLATES.slice() : defaultTmpls) : defaultTmpls;
   const bgImage  = tmpls.map(t => 'url(' + t + ')').join(',');
-  // Tutti gli strati riempiono per intero il riquadro (gli SVG base e
-  // top hanno le stesse dimensioni viewBox 544x120 e combaciano).
+  // Tutti gli strati riempiono per intero il riquadro (gli SVG base e — All layers fill the whole box (the base and top SVGs
+  // top hanno le stesse dimensioni viewBox 544x120 e combaciano). — have the same viewBox 544x120 dimensions and match).
   const bgSize   = tmpls.map(() => '100% 100%').join(',');
   const bgPos    = tmpls.map(() => '0 0').join(',');
   const bgRepeat = tmpls.map(() => 'no-repeat').join(',');
   let html = '<div class="card-inner" style="position:relative;width:100%;height:0;padding-bottom:'+(h/w*100)+'%;background-image:'+bgImage+';background-size:'+bgSize+';background-repeat:'+bgRepeat+';background-position:'+bgPos+';overflow:hidden">';
-  // Testo NERO sulle schede magnetiche (card_card.svg ha banda chiara),
-  // ambra sugli overlay ROM (card_grid/free, sfondo scuro).
+  // Testo NERO sulle schede magnetiche (card_card.svg ha banda chiara), — BLACK text on magnetic cards (card_card.svg has a light band),
+  // ambra sugli overlay ROM (card_grid/free, sfondo scuro). — amber on ROM overlays (card_grid/free, dark background).
   const color = isCard ? '#000000' : '#d36910';
 
-  // ── Nome scheda magnetica (banda superiore della card_card.svg) ──
-  // Ogni card salvata ha un nome (Campo "name" del file JSON, esposto
-  // da /api/status come active_card_name): viene disegnato centrato
-  // nella fascia alta, dove la posizione Y si regola dal pannello
-  // posizioni. Le righe overlay (FREE/GRID) eventuali vengono
-  // sovrapposte sopra, come per le ROM.
+  // ── Nome scheda magnetica (banda superiore della card_card.svg) — Magnetic card name (top band of card_card.svg) ──
+  // Ogni card salvata ha un nome (Campo "name" del file JSON, esposto — Every saved card has a name ("name" field of the JSON file, exposed
+  // da /api/status come active_card_name): viene disegnato centrato — by /api/status as active_card_name): it is drawn centered
+  // nella fascia alta, dove la posizione Y si regola dal pannello — in the top band, where the Y position is adjusted from the
+  // posizioni. Le righe overlay (FREE/GRID) eventuali vengono — positions panel. Any overlay rows (FREE/GRID) are then
+  // sovrapposte sopra, come per le ROM. — overlaid on top, as for the ROMs.
   if (hasName) {
     const y = CARD_NAME_Y;
     const x = CARD_NAME_X;
     html += '<div style="position:absolute;left:'+(x/w*100)+'%;top:'+(y/h*100)+'%;transform:translate(-50%,-50%);font-size:20px;color:'+color+';font-weight:bold;font-family:Arial;white-space:nowrap;text-align:center">'+escHtml(cardName)+'</div>';
   }
 
-  // ── Righe libere (intestazione + card stile ML-01) ───────────────
+  // ── Righe libere (intestazione + card stile ML-01) — Free rows (header + ML-01 style card) ──
   freeRows.forEach(row => {
     const kn = parseInt(row.key) || 1;
     const y = freeRowY(kn);
     const { align, fs } = applyAttr(row.attr, 14);
 
-    // Più di 3 spazi consecutivi (>=4) nel TESTO = confine tra
-    // blocchi comandi distinti sulla stessa riga. Un solo blocco:
-    // allineamento da ATTR (s/e/c/m). Due o più: distribuiti
-    // "space-between" — primo a sinistra, ultimo a destra, quelli
-    // in mezzo equidistanti (3 blocchi = sinistra/centro/destra).
+    // Più di 3 spazi consecutivi (>=4) nel TESTO = confine tra — More than 3 consecutive spaces (>=4) in the TEXT = boundary between
+    // blocchi comandi distinti sulla stessa riga. Un solo blocco: — distinct command blocks on the same row. A single block:
+    // allineamento da ATTR (s/e/c/m). Due o più: distribuiti — alignment from ATTR (s/e/c/m). Two or more: distributed
+    // "space-between" — primo a sinistra, ultimo a destra, quelli — "space-between" — first on the left, last on the right, the ones
+    // in mezzo equidistanti (3 blocchi = sinistra/centro/destra). — in the middle equally spaced (3 blocks = left/center/right).
     const blocks = row.text.split(/ {4,}/).map(s => s.trim()).filter(s => s.length);
 
     if (blocks.length <= 1) {
@@ -585,7 +585,7 @@ function renderCardSVG(mod, prog, rows, cardName) {
     }
   });
 
-  // ── Griglia A-E / A'-E' ─────────────────────────────────────────
+  // ── Griglia A-E / A'-E' — Grid A-E / A'-E' ─────────────────────
   if (hasGrid) {
     const keys = [['A','B','C','D','E'],["A'","B'","C'","D'","E'"]];
     for (let r = 0; r < 2; r++) {
@@ -606,7 +606,7 @@ function renderCardSVG(mod, prog, rows, cardName) {
 )jsrc";
 
 /* ═══════════════════════════════════════════════════════════════════
-   PAGINA DI CONFIGURAZIONE WiFi (captive portal)
+   PAGINA DI CONFIGURAZIONE WiFi (captive portal) — WiFi CONFIGURATION PAGE (captive portal)
    ═══════════════════════════════════════════════════════════════════ */
 static const char WEB_SETUP[] = R"rawhtml(<!DOCTYPE html>
 <html lang="it">
@@ -747,7 +747,7 @@ static const char WEB_IDE[] = R"rawhtml(<!DOCTYPE html>
     --text:#d8d6ce; --muted:#6a6a62; --led:#ff2020;
     --key-bg:#2a2a28; --key-num:#3a3a36; --key-op:#c49a3a;
     --key-cream:#e4ddc8; --key-cream-text:#161512;
-    --code-color: #00ccff; /* Azzurro per i codici tasto */
+    --code-color: #00ccff; /* Azzurro per i codici tasto — Cyan for the key codes */
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   body{background:var(--bg);color:var(--text);
@@ -785,10 +785,10 @@ static const char WEB_IDE[] = R"rawhtml(<!DOCTYPE html>
           border-radius:50%;background:#1a0f05;z-index:3}
   .led-op.on{background:var(--led);box-shadow:0 0 10px rgba(255,32,32,0.9)}
 
-  /* Riquadro overlay scheda — caricato via JS che recupera il
-     template SVG universale (card_free.svg / card_grid.svg, uguale
-     per tutti i moduli libreria, non solo ml1) e vi sovrappone
-     il testo overlay usando HTML/CSS posizionamento assoluto. */
+  /* Riquadro overlay scheda: caricato via JS che recupera il — Card overlay box: loaded via JS that fetches the
+     template SVG universale (card_free.svg / card_grid.svg, uguale — universal SVG template (card_free.svg / card_grid.svg, the same
+     per tutti i moduli libreria, non solo ml1) e vi sovrappone — for all library modules, not only ml1) and overlays
+     il testo overlay usando HTML/CSS posizionamento assoluto. — the overlay text using absolute HTML/CSS positioning. */
   .card-slide {
     width: 100%;
     max-width: 420px;
@@ -799,18 +799,18 @@ static const char WEB_IDE[] = R"rawhtml(<!DOCTYPE html>
     border: 1px solid var(--amber);
     border-radius: 4px;
     background: #0d0d0b;
-    /* Il riquadro resta SEMPRE fisso a schermo durante lo slide:
-       l'animazione di entrata/uscita agisce sul contenuto interno
-       (.card-inner/.card-placeholder), che viene ritagliato dai
-       bordi del box grazie a overflow:hidden — v. updateKeyOverlay(). */
+    /* Il riquadro resta SEMPRE fisso a schermo durante lo slide: — The box ALWAYS stays fixed on screen during the slide:
+       l'animazione di entrata/uscita agisce sul contenuto interno — the enter/exit animation acts on the inner content
+       (.card-inner/.card-placeholder), che viene ritagliato dai — (.card-inner/.card-placeholder), which is clipped by the
+       bordi del box grazie a overflow:hidden — v. updateKeyOverlay(). — box edges thanks to overflow:hidden — see updateKeyOverlay(). */
     overflow: hidden;
   }
-  /* Animazione cambio overlay: quando il contenuto cambia (nuovo
-     programma/modulo/scheda attiva) il vecchio overlay esce
-     scivolando a destra DENTRO il riquadro, poi quello nuovo entra
-     da destra — v. updateKeyOverlay() + slideInCard()/slideOutCard().
-     Le classi vengono messe sul figlio diretto (il contenuto), non
-     sul .card-slide stesso, così il riquadro non si muove. */
+  /* Animazione cambio overlay: quando il contenuto cambia (nuovo — Overlay change animation: when the content changes (new
+     programma/modulo/scheda attiva) il vecchio overlay esce — program/module/active card) the old overlay exits
+     scivolando a destra DENTRO il riquadro, poi quello nuovo entra — sliding to the right INSIDE the box, then the new one enters
+     da destra — v. updateKeyOverlay() + slideInCard()/slideOutCard(). — from the right — see updateKeyOverlay() + slideInCard()/slideOutCard().
+     Le classi vengono messe sul figlio diretto (il contenuto), non — The classes are put on the direct child (the content), not
+     sul .card-slide stesso, così il riquadro non si muove. — on the .card-slide itself, so the box does not move. */
   @keyframes cardSlideIn {
     from { transform: translateX(60%); opacity: 0.3; }
     to   { transform: translateX(0);   opacity: 1;   }
@@ -827,10 +827,10 @@ static const char WEB_IDE[] = R"rawhtml(<!DOCTYPE html>
   .card-slide > .card-placeholder.card-leaving {
     animation: cardSlideOut 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
   }
-  /* Barra titolo sopra il riquadro overlay — mostra il nome della
-     scheda magnetica attiva (letto da /api/status, campo
-     active_card_name). Vuota = nascosta (:empty), niente da gestire
-     lato JS oltre a mettere/togliere il testo. */
+  /* Barra titolo sopra il riquadro overlay — mostra il nome della — Title bar above the overlay box — shows the name of the
+     scheda magnetica attiva (letto da /api/status, campo — active magnetic card (read from /api/status, field
+     active_card_name). Vuota = nascosta (:empty), niente da gestire — active_card_name). Empty = hidden (:empty), nothing to manage
+     lato JS oltre a mettere/togliere il testo. — on the JS side besides adding/removing the text. */
   .card-title-bar {
     width: 100%;
     max-width: 420px;
@@ -860,49 +860,49 @@ static const char WEB_IDE[] = R"rawhtml(<!DOCTYPE html>
   
   #mode-oldnew,#mode-overlay{cursor:pointer;user-select:none}
 
-  /* Modifica tastiera: più piccola e spaziata */
-  .kbd{display:grid;grid-template-columns:repeat(5,1fr);gap:6px 20px; /*    griglia    */
+  /* Modifica tastiera: più piccola e spaziata — Keyboard tweak: smaller and more spaced */
+  .kbd{display:grid;grid-template-columns:repeat(5,1fr);gap:6px 20px; /*    griglia — grid    */
        width:100%;max-width:380px;
        padding:0 4px;margin-top:4px}
 
   .key-wrap{display:flex;flex-direction:column;align-items:center;position:relative}
 
-  /* Etichetta tasto più piccola */
-  .key-label{color:var(--amber-l);font-size:14px; /* Font size invariata */
+  /* Etichetta tasto più piccola — Smaller key label */
+  .key-label{color:var(--amber-l);font-size:14px; /* Font size invariata — Font size unchanged */
              line-height:1;font-family: 'Arial Narrow', 'Oswald', sans-serif;
-			 font-weight: 700;margin-bottom:1px; /* Margine ulteriormente ridotto */
+			 font-weight: 700;margin-bottom:1px; /* Margine ulteriormente ridotto — Margin further reduced */
              text-align:center;min-height:16px;letter-spacing:0.5px;white-space:nowrap}
   .key-label:empty{visibility:hidden}
 
-  /* CSS per overlay codici tasto (azzurro) */
+  /* CSS per overlay codici tasto (azzurro) — CSS for the key-code overlay (blue) */
   .key-code-overlay {
       position: absolute;
-      left: -15px; /* Spinge i numeri fuori dal tasto, a sinistra */
-      bottom: 2px; /* Li allinea in basso, all'altezza del tasto */
+      left: -15px; /* Spinge i numeri fuori dal tasto, a sinistra — Pushes the numbers out of the key, to the left */
+      bottom: 2px; /* Li allinea in basso, all'altezza del tasto — Aligns them at the bottom, at the key height */
       display: flex;
-      flex-direction: column; /* Li impila uno sopra l'altro */
-      align-items: flex-end; /* Li allinea verso il bordo del tasto */
-      gap: 3px; /* Spazio tra il numero sopra e quello sotto */
+      flex-direction: column; /* Li impila uno sopra l'altro — Stacks them one above the other */
+      align-items: flex-end; /* Li allinea verso il bordo del tasto — Aligns them toward the key edge */
+      gap: 3px; /* Spazio tra il numero sopra e quello sotto — Space between the number above and the one below */
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.3s;
   }
   .key-code-overlay.on {opacity: 1;}
   
-/* Contenitore delle scritte: forza l'affiancamento sulla stessa riga */
+/* Contenitore delle scritte: forza l'affiancamento sulla stessa riga — Text container: forces side-by-side placement on the same row */
 .bottom-controls {
-    display: flex; /*!important;*/
-    justify-content: space-between; /*!important; */
+    display: flex; /*!important;*/ /* non più forzato — no longer forced */
+    justify-content: space-between; /*!important; */ /* non più forzato — no longer forced */
     align-items: flex-start;
     width: 100%;
-    max-width: 360px; /* Regola questo numero se la tastiera è più larga o più stretta */
-    margin: 5px auto 20px auto; /* Centra il blocco sotto la tastiera */
-    /*padding: 0 10px;  Sposta le scritte verso l'interno per allinearle ai tasti R/S e = */
+    max-width: 360px; /* Regola questo numero se la tastiera è più larga o più stretta — Adjust this number if the keyboard is wider or narrower */
+    margin: 5px auto 20px auto; /* Centra il blocco sotto la tastiera — Centers the block below the keyboard */
+    /*padding: 0 10px;  Sposta le scritte verso l'interno per allinearle ai tasti R/S e = — Moves the text inward to align it with the R/S and = keys */
     box-sizing: border-box;
 	font-family: 'Arial Narrow', 'Oswald', sans-serif;
 }
 
-/* --- DESTRA: TI Programmable 59 (AMBRA) --- */
+/* --- DESTRA: TI Programmable 59 (AMBRA) — RIGHT: TI Programmable 59 (AMBER) --- */
 .brand-amber {
 	font-family: 'Arial Narrow', 'Oswald', sans-serif;
 	left: 30px;
@@ -922,7 +922,7 @@ static const char WEB_IDE[] = R"rawhtml(<!DOCTYPE html>
     
 }
 
-/* --- SINISTRA: Key Code / Overlay (AZZURRO) --- */
+/* --- SINISTRA: Key Code / Overlay (AZZURRO) — LEFT: Key Code / Overlay (BLUE) --- */
 .blue-text-block {
     color: #00BFFF; 
 	right: 50px;
@@ -933,36 +933,36 @@ static const char WEB_IDE[] = R"rawhtml(<!DOCTYPE html>
     font-weight: bold;
     font-size: 12pt; 
     user-select: none;
-    visibility: hidden; /* Nasconde il testo ma mantiene l'ingombro per non spostare la scritta di destra */
+    visibility: hidden; /* Nasconde il testo ma mantiene l'ingombro per non spostare la scritta di destra — Hides the text but keeps the space so the right text is not moved */
 }
 
-/* Quando si accende l'overlay, la scritta appare */
+/* Quando si accende l'overlay, la scritta appare — When the overlay is turned on, the text appears */
 .blue-text-block.on {
     visibility: visible;
 }
   
   .code-2nd, .code-normal {
-      position: static; /* Rimuove il vecchio posizionamento assoluto */
-      font-size: 10px; /* Leggermente più grandi per una migliore lettura */
-      color: #00d2ff !important; /* Azzurro acceso visibile sullo sfondo scuro */
+      position: static; /* Rimuove il vecchio posizionamento assoluto — Removes the old absolute positioning */
+      font-size: 10px; /* Leggermente più grandi per una migliore lettura — Slightly larger for better readability */
+      color: #00d2ff !important; /* Azzurro acceso visibile sullo sfondo scuro — Bright cyan visible on the dark background */
       font-weight: bold;
       font-family: monospace;
       line-height: 1;
   }
 
-  /* Tasto più piccolo */
+  /* Tasto più piccolo — Smaller key */
   .key{background:var(--key-bg);border:1px solid var(--border);border-radius:5px;
-       padding:4px 1px; margin:0 8px; /* Padding ridotto */
+       padding:4px 1px; margin:0 8px; /* Padding ridotto — Reduced padding */
        text-align:center;cursor:pointer;user-select:none;
        transition:all .08s;display:flex;flex-direction:column;
-       align-items:center;justify-content:center;min-height:30px; /* Altezza minima ridotta */
+       align-items:center;justify-content:center;min-height:30px; /* Altezza minima ridotta — Reduced minimum height */
        width:100%}
   .key:active,.key.pressed{background:var(--amber);border-color:var(--amber-l);
                             transform:scale(.95)}
   .key:active .main,.key.pressed .main{color:#000}
 
-  /* Testo tasto più piccolo */
-  .key .main{font-size:20px; /* Font size ridotta */
+  /* Testo tasto più piccolo — Smaller key text */
+  .key .main{font-size:20px; /* Font size ridotta — Reduced font size */
              font-weight:bold;display:block;line-height:1;font-family: 'Arial Narrow', 'Oswald', sans-serif;}
 
   .key.num{background:var(--key-cream);border-color:#b8b090}
@@ -1122,14 +1122,14 @@ const SEG_MAP = {
   '-':'g','E':'afged','r':'eg','o':'cdge','C':'afed',' ':'','.':''
 };
 
-// Stato per l'overlay dei codici tasto (azzurro)
+// Stato per l'overlay dei codici tasto (azzurro) — State for the key-code overlay (blue)
 let isCodeOverlayEnabled = false;
 
 function renderDisplay(buf, opPending, isError) {
   const el = document.getElementById('display');
   if (!buf) { buf = '            0'; }
 
-  // Applica o rimuovi la classe di lampeggio all'intero display a led
+  // Applica o rimuovi la classe di lampeggio all'intero display a led — Applies or removes the blink class on the whole LED display
   if (isError) {
       el.classList.add('error-blink');
   } else {
@@ -1148,7 +1148,7 @@ function renderDisplay(buf, opPending, isError) {
       pending_dp = false;
     }
   }
-  /* If display string starts with '.', insert leading 0 with DP */
+  /* Se la stringa del display inizia con '.', inserisci uno 0 iniziale con DP — If display string starts with '.', insert leading 0 with DP */
   if (pending_dp) {
     digits.unshift({ch: '0', dp: true});
     pending_dp = false;
@@ -1193,7 +1193,7 @@ function renderDisplay(buf, opPending, isError) {
   }
 }
 
-// Cambia questa funzione
+// Cambia questa funzione — Change this function
 async function refreshDisplay() {
   try {
     const r = await fetch(API+'/api/status');
@@ -1206,27 +1206,27 @@ async function refreshDisplay() {
   }
 }
 
-// escHtml() e renderCardSVG() sono nel file condiviso /cardrender.js
-// (incluso in cima allo script di questa pagina) — usate anche da
-// /overlays per l'anteprima; prima erano duplicate solo qui e
-// /overlays otteneva "renderCardSVG is not defined".
+// escHtml() e renderCardSVG() sono nel file condiviso /cardrender.js — escHtml() and renderCardSVG() live in the shared file /cardrender.js
+// (incluso in cima allo script di questa pagina) — usate anche da — (included at the top of this page's script) — also used by
+// /overlays per l'anteprima; prima erano duplicate solo qui e — /overlays for the preview; they used to be duplicated only here and
+// /overlays otteneva "renderCardSVG is not defined". — /overlays got "renderCardSVG is not defined".
 
 let lastOverlayKey = null;
-// Sequenza uscita → entrata: ogni cambio overlay fa prima scivolare
-// via a destra quello vecchio (cardSlideOut, 0.4s) e poi entra quello
-// nuovo da destra (cardSlideIn). seq è un token: se durante l'attesa
-// (animazione uscita o fetch) lo stato cambia di nuovo, la transizione
-// vecchia viene abbandonata e si parte con quella nuova.
+// Sequenza uscita → entrata: ogni cambio overlay fa prima scivolare — Exit → enter sequence: every overlay change first slides
+// via a destra quello vecchio (cardSlideOut, 0.4s) e poi entra quello — the old one away to the right (cardSlideOut, 0.4s) and then the new
+// nuovo da destra (cardSlideIn). seq è un token: se durante l'attesa — one enters from the right (cardSlideIn). seq is a token: if while waiting
+// (animazione uscita o fetch) lo stato cambia di nuovo, la transizione — (exit animation or fetch) the state changes again, the old transition
+// vecchia viene abbandonata e si parte con quella nuova. — is abandoned and the new one starts.
 let overlaySeq = 0;
 const OVERLAY_ANIM_MS = 400;
 
-// Forza il riavvio dell'animazione anche se la classe c'era già
-// (altrimenti il secondo cambio consecutivo non la rifarebbe partire,
-// il browser la considera "già applicata"): la toglie, forza un
-// reflow, la rimette.
-// Le classi vanno sul CONTENUTO (figlio diretto del .card-slide), non
-// sul riquadro: così durante lo slide il box resta fisso a schermo e
-// scivola solo l'overlay dentro di esso (ritagliato da overflow:hidden).
+// Forza il riavvio dell'animazione anche se la classe c'era già — Forces the animation to restart even if the class was already there
+// (altrimenti il secondo cambio consecutivo non la rifarebbe partire, — (otherwise the second consecutive change would not restart it,
+// il browser la considera "già applicata"): la toglie, forza un — the browser considers it "already applied"): it removes it, forces a
+// reflow, la rimette. — reflow, then puts it back.
+// Le classi vanno sul CONTENUTO (figlio diretto del .card-slide), non — The classes go on the CONTENT (direct child of the .card-slide), not
+// sul riquadro: così durante lo slide il box resta fisso a schermo e — on the box: so during the slide the box stays fixed on screen and
+// scivola solo l'overlay dentro di esso (ritagliato da overflow:hidden). — only the overlay slides inside it (clipped by overflow:hidden).
 function slideInCard(el) {
   const target = el.firstElementChild || el;
   target.classList.remove('card-leaving');
@@ -1240,16 +1240,16 @@ function slideOutCard(el) {
   void target.offsetWidth;
 }
 
-// Priorità overlay (dalla più alta alla più bassa):
-// 1) Programma ROM selezionato (lib_page > 0): la slide della libreria
-//    SOSTITUISCE l'overlay del programma in memoria — come la carta
-//    cartacea che sulla TI-59 reale si appoggia sopra la tastiera per
-//    i programmi libreria. Resta in vista anche dopo la cancellazione
-//    della memoria utente (prog_len = 0).
-// 2) Scheda magnetica caricata in memoria: solo se c'è davvero un
-//    programma (prog_len > 0). Dopo la cancellazione della memoria LRN
-//    (prog_len = 0) l'overlay della scheda scompare.
-// 3) Placeholder (nessun overlay).
+// Priorità overlay (dalla più alta alla più bassa): — Overlay priority (from highest to lowest):
+// 1) Programma ROM selezionato (lib_page > 0): la slide della libreria — 1) Selected ROM program (lib_page > 0): the library slide
+//    SOSTITUISCE l'overlay del programma in memoria — come la carta — REPLACES the in-memory program overlay — like the paper card
+//    cartacea che sulla TI-59 reale si appoggia sopra la tastiera per — that on the real TI-59 rests on top of the keyboard for
+//    i programmi libreria. Resta in vista anche dopo la cancellazione — library programs. It stays in view even after clearing
+//    della memoria utente (prog_len = 0). — the user memory (prog_len = 0).
+// 2) Scheda magnetica caricata in memoria: solo se c'è davvero un — 2) Magnetic card loaded in memory: only if there is really a
+//    programma (prog_len > 0). Dopo la cancellazione della memoria LRN — program (prog_len > 0). After clearing the LRN memory
+//    (prog_len = 0) l'overlay della scheda scompare. — (prog_len = 0) the card overlay disappears.
+// 3) Placeholder (nessun overlay). — 3) Placeholder (no overlay).
 function updateKeyOverlay(d) {
   const el = document.getElementById('card-slide');
   const titleEl = document.getElementById('card-title-bar');
@@ -1259,11 +1259,11 @@ function updateKeyOverlay(d) {
   const libPage = d.lib_page || 0;
   const progLen = d.prog_len || 0;
 
-  // Cancellazione memoria LRN (prog_len = 0) => via l'overlay del
-  // programma in memoria (scheda magnetica), ma la ROM caricata resta
-  // comunque in vista: l'overlay ROM è legato alla selezione del
-  // programma libreria (lib_page), non al programma utente. Priorità
-  // altrimenti: ROM attiva > scheda in memoria.
+  // Cancellazione memoria LRN (prog_len = 0) => via l'overlay del — Clearing LRN memory (prog_len = 0) => removes the overlay of the
+  // programma in memoria (scheda magnetica), ma la ROM caricata resta — in-memory program (magnetic card), but the loaded ROM stays
+  // comunque in vista: l'overlay ROM è legato alla selezione del — in view anyway: the ROM overlay is tied to the library
+  // programma libreria (lib_page), non al programma utente. Priorità — program selection (lib_page), not to the user program. Priority
+  // altrimenti: ROM attiva > scheda in memoria. — otherwise: active ROM > card in memory.
   const hasMem = progLen > 0;
   const isRom  = !!(libMod && libPage > 0);
   const isCard = !isRom && hasMem && cardSlot >= 0;
@@ -1272,25 +1272,25 @@ function updateKeyOverlay(d) {
   if (isRom)            { mod = libMod; page = libPage; }
   else if (isCard)      { mod = 'card'; page = cardSlot; }
   else                  { mod = '';     page = 0;        }
-  // FIX: page è un numero e per lo slot 0 vale 0 (falsy in JS) — con
-  // "(mod && page)" la scheda magnetica nello slot 0 non produceva mai
-  // una key e l'overlay non veniva disegnato (active_card_slot restava
-  // 0 ma il riquadro card era vuoto). Controllare solo mod.
+  // FIX: page è un numero e per lo slot 0 vale 0 (falsy in JS) — con — FIX: page is a number and for slot 0 it is 0 (falsy in JS) — with
+  // "(mod && page)" la scheda magnetica nello slot 0 non produceva mai — "(mod && page)" the magnetic card in slot 0 never produced
+  // una key e l'overlay non veniva disegnato (active_card_slot restava — a key and the overlay was never drawn (active_card_slot stayed
+  // 0 ma il riquadro card era vuoto). Controllare solo mod. — 0 but the card box was empty). Check only mod.
   const key = mod ? (mod + ':' + page) : '';
 
-  // Card magnetica XX: in assenza di programmi caricati (memoria LRN
-  // vuota e nessuna ROM selezionata) si mostra sempre la scheda vuota,
-  // con la firma dell'autore al posto del nome del programma.
+  // Card magnetica XX: in assenza di programmi caricati (memoria LRN — Blank magnetic card XX: with no programs loaded (empty LRN
+  // vuota e nessuna ROM selezionata) si mostra sempre la scheda vuota, — memory and no ROM selected) the empty card is always shown,
+  // con la firma dell'autore al posto del nome del programma. — with the author signature instead of the program name.
   const BLANK_CARD_KEY = 'card:XX';
   if (!key) {
-    if (lastOverlayKey === BLANK_CARD_KEY) return;   // già in vista
+    if (lastOverlayKey === BLANK_CARD_KEY) return;   // già in vista — already in view
     lastOverlayKey = BLANK_CARD_KEY;
     titleEl.textContent = '';
     const seq = ++overlaySeq;
     slideOutCard(el);
     const exitStart = Date.now();
     loadCardPositions().catch(() => {}).then(() => {
-      if (seq !== overlaySeq) return;   // nel frattempo è arrivato un altro overlay: lascia fare a lui
+      if (seq !== overlaySeq) return;   // nel frattempo è arrivato un altro overlay: lascia fare a lui — another overlay arrived in the meantime: let it handle it
       const wait = Math.max(0, OVERLAY_ANIM_MS - (Date.now() - exitStart));
       setTimeout(() => {
         if (seq !== overlaySeq) return;
@@ -1304,40 +1304,40 @@ function updateKeyOverlay(d) {
   lastOverlayKey = key;
   const seq = ++overlaySeq;
 
-  // Il nome della scheda magnetica attiva viene ora renderizzato
-  // direttamente dentro l'overlay (card_card.svg, banda superiore, v.
-  // renderCardSVG) — la barra titolo sopra resta sempre vuota per
-  // evitare il doppione.
+  // Il nome della scheda magnetica attiva viene ora renderizzato — The active magnetic card name is now rendered
+  // direttamente dentro l'overlay (card_card.svg, banda superiore, v. — directly inside the overlay (card_card.svg, top band, see
+  // renderCardSVG) — la barra titolo sopra resta sempre vuota per — renderCardSVG) — the title bar above stays always empty to
+  // evitare il doppione. — avoid the duplicate.
   titleEl.textContent = '';
 
-  // 1) Uscita: il vecchio overlay scivola via a destra.
+  // 1) Uscita: il vecchio overlay scivola via a destra. — 1) Exit: the old overlay slides away to the right.
   slideOutCard(el);
   const exitStart = Date.now();
 
-  // 2) Carica il nuovo contenuto in parallelo all'uscita, ma NON lo
-  // disegna ancora: viene iniettato solo quando l'uscita è finita,
-  // altrimenti il nuovo overlay parteciperebbe alla slide-out.
+  // 2) Carica il nuovo contenuto in parallelo all'uscita, ma NON lo — 2) Loads the new content in parallel with the exit, but does NOT
+  // disegna ancora: viene iniettato solo quando l'uscita è finita, — draw it yet: it is injected only when the exit is over,
+  // altrimenti il nuovo overlay parteciperebbe alla slide-out. — otherwise the new overlay would take part in the slide-out.
   const prog = String(page).padStart(2, '0');
   let pendingHtml = '';
   fetch(API+'/api/overlays?mod='+encodeURIComponent(mod)+'&prog='+prog)
     .then(r => r.json())
     .then(async rows => {
-      if (seq !== overlaySeq) return;   // è cambiato di nuovo: ignora
-      // Assicura che i template (es. top.svg/base.svg) siano caricati
-      // dal device PRIMA di renderizzare: altrimenti CARD_TEMPLATES resta
-      // vuoto e l'overlay card cadrebbe sul fallback card_free.svg.
+      if (seq !== overlaySeq) return;   // è cambiato di nuovo: ignora — it changed again: ignore
+      // Assicura che i template (es. top.svg/base.svg) siano caricati — Makes sure the templates (e.g. top.svg/base.svg) are loaded
+      // dal device PRIMA di renderizzare: altrimenti CARD_TEMPLATES resta — from the device BEFORE rendering: otherwise CARD_TEMPLATES stays
+      // vuoto e l'overlay card cadrebbe sul fallback card_free.svg. — empty and the card overlay would fall back to card_free.svg.
       await loadCardPositions();
-      if (seq !== overlaySeq) return;   // è cambiato di nuovo: ignora
+      if (seq !== overlaySeq) return;   // è cambiato di nuovo: ignora — it changed again: ignore
       pendingHtml = renderCardSVG(mod, prog, rows, isCard ? (d.active_card_name || '') : '');
     })
     .catch(() => {
-      if (seq !== overlaySeq) return;   // è cambiato di nuovo: ignora
+      if (seq !== overlaySeq) return;   // è cambiato di nuovo: ignora — it changed again: ignore
       pendingHtml = '<div class="card-placeholder"></div>';
     })
     .finally(() => {
-      if (seq !== overlaySeq) return;   // è cambiato di nuovo: ignora
-      // 3) Entrata: aspetta che l'uscita sia finita (o che il fetch sia
-      // arrivato, se è stato più lento), poi entra da destra.
+      if (seq !== overlaySeq) return;   // è cambiato di nuovo: ignora — it changed again: ignore
+      // 3) Entrata: aspetta che l'uscita sia finita (o che il fetch sia — 3) Entry: waits for the exit to be over (or for the fetch to
+      // arrivato, se è stato più lento), poi entra da destra. — arrive, if it was slower), then enters from the right.
       const wait = Math.max(0, OVERLAY_ANIM_MS - (Date.now() - exitStart));
       setTimeout(() => {
         if (seq !== overlaySeq) return;
@@ -1383,7 +1383,7 @@ document.getElementById('mode-trace').addEventListener('click', async () => {
   } catch(e) {}
 });
 
-// Gestione clic sull'overlay codici tasto (azzurro)
+// Gestione clic sull'overlay codici tasto (azzurro) — Click handling for the key-code overlay (blue)
 document.getElementById('mode-overlay').addEventListener('click', toggleCodeOverlay);
 
 function toggleCodeOverlay() {
@@ -1454,9 +1454,9 @@ checkSvgTemplates().then(missing => {
 </html>)rawhtml";
 
 /* ═══════════════════════════════════════════════════════════════════
-   PAGINA "MR. WOLF" (god mode) — tuning motore + modalità Old/New
-   Raggiungibile SOLO se su SPIFFS esiste /god_mode.txt contenente
-   "ora faccio quello che voglio" (vedi god_mode_enabled()).
+   PAGINA "MR. WOLF" (god mode) — tuning motore + modalità Old/New — "MR. WOLF" PAGE (god mode) — engine tuning + Old/New mode
+   Raggiungibile SOLO se su SPIFFS esiste /god_mode.txt contenente — Reachable ONLY if SPIFFS contains /god_mode.txt holding
+   "ora faccio quello che voglio" (vedi god_mode_enabled()). — "now I do what I want" (see god_mode_enabled()).
    ═══════════════════════════════════════════════════════════════════ */
 static const char WEB_WOLF[] = R"rawhtml(<!DOCTYPE html>
 <html lang="it">
@@ -1519,7 +1519,7 @@ load();
 </html>)rawhtml";
 
 /* ═══════════════════════════════════════════════════════════════════
-   PAGINA DI GESTIONE (programmi, moduli, card)
+   PAGINA DI GESTIONE (programmi, moduli, card) — MANAGEMENT PAGE (programs, modules, cards)
    ═══════════════════════════════════════════════════════════════════ */
 static const char WEB_MANAGE[] = R"rawhtml(<!DOCTYPE html>
 <html lang="it">
@@ -1880,9 +1880,9 @@ async function uploadFS() {
   const input = document.getElementById('fs-file');
   const file = input.files[0];
   if (!file) { alert(t('mgr_alert_choose_file')); return; }
-  // Multipart: il server lo riceve in STREAMING a pezzi (niente
-  // body da 20 KB bufferizzato in RAM, era la causa del fallimento
-  // con gli SVG grossi).
+  // Multipart: il server lo riceve in STREAMING a pezzi (niente — Multipart: the server receives it in STREAMING chunks (no
+  // body da 20 KB bufferizzato in RAM, era la causa del fallimento — 20 KB body buffered in RAM, that was the cause of the failure
+  // con gli SVG grossi). — with large SVGs).
   const fd = new FormData();
   fd.append('file', file, file.name);
   const r = await fetch(API+'/api/fs/upload', {method:'POST', body:fd});
@@ -1943,14 +1943,14 @@ listFS();
 </html>)rawhtml";
 
 /* ═══════════════════════════════════════════════════════════════════
-   PAGINA OVERLAY TASTIERA (editor testuale + anteprima per mod/prog)
-   Terza pagina, raggiungibile da /manage. Editor "tutto o niente":
-   un unico textarea con l'intero file /overlays.txt, salvato per
-   intero ad ogni SAVE (stesso approccio già discusso per cardemu:
-   un file solo, riscritto atomicamente). L'anteprima riusa /api/modules
-   per popolare le stesse select di modulo/programma già presenti in
-   /manage, poi chiama /api/overlays?mod=..&prog=.. per mostrare le
-   righe già filtrate.
+   PAGINA OVERLAY TASTIERA (editor testuale + anteprima per mod/prog) — KEYBOARD OVERLAY PAGE (text editor + preview for mod/prog)
+   Terza pagina, raggiungibile da /manage. Editor "tutto o niente": — Third page, reachable from /manage. "All or nothing" editor:
+   un unico textarea con l'intero file /overlays.txt, salvato per — a single textarea with the whole /overlays.txt file, saved
+   intero ad ogni SAVE (stesso approccio già discusso per cardemu: — in full on every SAVE (same approach already discussed for cardemu:
+   un file solo, riscritto atomicamente). L'anteprima riusa /api/modules — a single file, rewritten atomically). The preview reuses /api/modules
+   per popolare le stesse select di modulo/programma già presenti in — to populate the same module/program selects already present in
+   /manage, poi chiama /api/overlays?mod=..&prog=.. per mostrare le — /manage, then calls /api/overlays?mod=..&prog=.. to show the
+   righe già filtrate. — already filtered rows.
    ═══════════════════════════════════════════════════════════════════ */
 static const char WEB_OVERLAYS[] = R"rawhtml(<!DOCTYPE html>
 <html lang="it">
@@ -2112,7 +2112,7 @@ static const char WEB_OVERLAYS[] = R"rawhtml(<!DOCTYPE html>
 <script>
 const API = '';
 let modulesCache = [];
-// escHtml() è nel file condiviso /cardrender.js incluso sopra.
+// escHtml() è nel file condiviso /cardrender.js incluso sopra. — escHtml() is in the shared file /cardrender.js included above.
 
 async function loadRaw() {
   const statusEl = document.getElementById('status');
@@ -2135,11 +2135,11 @@ async function loadRaw() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   TABELLA ATTRIBUTI — mostra SEMPRE tutti gli attributi PREVISTI
-   (ATTR_CODES), non solo quelli effettivamente usati nel testo. La
-   colonna "Righe" si aggiorna da sola a ogni modifica del textarea e
-   dice quante righe usano ciascun attributo (0 se non lo usi ancora,
-   il che non significa che non esista).
+   TABELLA ATTRIBUTI — mostra SEMPRE tutti gli attributi PREVISTI — ATTRIBUTES TABLE — always shows all the EXPECTED attributes
+   (ATTR_CODES), non solo quelli effettivamente usati nel testo. La — (ATTR_CODES), not only the ones actually used in the text. The
+   colonna "Righe" si aggiorna da sola a ogni modifica del textarea e — "Rows" column updates by itself on every textarea change and
+   dice quante righe usano ciascun attributo (0 se non lo usi ancora, — says how many rows use each attribute (0 if you do not use it yet,
+   il che non significa che non esista). — which does not mean it does not exist).
    ═══════════════════════════════════════════════════════════════════ */
 const ATTR_CODES = ['s', 'e', 'c', 'm', 'f'];
 function describeAttrCode(code) {
@@ -2192,7 +2192,7 @@ async function saveRaw() {
   } catch(e) { alert(e.message); }
 }
 
-// Scarica l'intero file /overlays.txt sul PC (backup locale).
+// Scarica l'intero file /overlays.txt sul PC (backup locale). — Downloads the whole /overlays.txt file to the PC (local backup).
 async function downloadRawFile() {
   try {
     const r = await fetch(API+'/api/overlays/raw');
@@ -2208,8 +2208,8 @@ async function downloadRawFile() {
   } catch(e) { alert(e.message); }
 }
 
-// Apre un file overlays.txt dal PC e lo carica nel textarea (non
-// salva subito: serve premere SALVA, per controllare prima).
+// Apre un file overlays.txt dal PC e lo carica nel textarea (non — Opens an overlays.txt file from the PC and loads it in the textarea (it does
+// salva subito: serve premere SALVA, per controllare prima). — not save right away: you must press SAVE, to check first).
 async function uploadRawFile() {
   const input = document.getElementById('ovl-file');
   const file = input.files[0];
@@ -2229,13 +2229,13 @@ async function loadModulesForSelect() {
     const d = await r.json();
     modulesCache = d.modules || [];
 
-    // Schede magnetiche: stessa struttura {id,name,programs:[{num,title}]}
-    // dei moduli ROM, così fillProgramSelect() le gestisce senza
-    // bisogno di codice separato — "num" è lo slot, "title" è il nome
-    // dato alla scheda in fase di scrittura (letto da CardEmuState).
-    // Presente SEMPRE (anche con zero schede salvate): così si possono
-    // definire/editare righe, attributi e posizioni degli overlay
-    // scheda esattamente come per le ROM, per qualunque slot.
+    // Schede magnetiche: stessa struttura {id,name,programs:[{num,title}]} — Magnetic cards: same structure {id,name,programs:[{num,title}]}
+    // dei moduli ROM, così fillProgramSelect() le gestisce senza — as ROM modules, so fillProgramSelect() handles them without
+    // bisogno di codice separato — "num" è lo slot, "title" è il nome — separate code — "num" is the slot, "title" is the name
+    // dato alla scheda in fase di scrittura (letto da CardEmuState). — given to the card when writing it (read from CardEmuState).
+    // Presente SEMPRE (anche con zero schede salvate): così si possono — Always present (even with zero saved cards): so you can
+    // definire/editare righe, attributi e posizioni degli overlay — define/edit rows, attributes and positions of card overlays
+    // scheda esattamente come per le ROM, per qualunque slot. — exactly like for ROMs, for any slot.
     const CARDS_ALL_SLOTS = 50;
     try {
       const rc = await fetch(API+'/api/cards');
@@ -2287,9 +2287,9 @@ async function previewOverlay() {
     const r = await fetch(API+'/api/overlays?mod='+encodeURIComponent(mod)+'&prog='+encodeURIComponent(prog));
     const rows = await r.json();
     const el = document.getElementById('rows');
-    // Nome della scheda magnetica selezionata, per l'anteprima
-    // (la card_card.svg mostra il nome in alto — stesso percorso del
-    // WEB_IDE, dove arriva da /api/status active_card_name).
+    // Nome della scheda magnetica selezionata, per l'anteprima — Name of the selected magnetic card, for the preview
+    // (la card_card.svg mostra il nome in alto — stesso percorso del — (card_card.svg shows the name on top — same path as
+    // WEB_IDE, dove arriva da /api/status active_card_name). — WEB_IDE, where it comes from /api/status active_card_name).
     let cardName = '';
     if (mod === 'card') {
       const m = modulesCache.find(x => x.id === 'card');
@@ -2303,16 +2303,16 @@ async function previewOverlay() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   ANTEPRIMA SCHEDA MAGNETICA — pannello dedicato in /overlays.
-   Mostra la card (sempre, anche senza file in SPIFFS) usando lo stack
-   di template configurato (top = strato superiore già impostato sopra
-   nella cardrender.js) e indica quali template risultano mancanti,
-   così da evidenziare "vedo le linee di default perché manca top.svg".
+   ANTEPRIMA SCHEDA MAGNETICA — pannello dedicato in /overlays. — Magnetic card preview — dedicated panel in /overlays.
+   Mostra la card (sempre, anche senza file in SPIFFS) usando lo stack — Shows the card (always, even without files in SPIFFS) using the configured template stack
+   di template configurato (top = strato superiore già impostato sopra — of configured template (top = upper layer already set above
+   nella cardrender.js) e indica quali template risultano mancanti, — in cardrender.js) and indicates which templates are missing,
+   così da evidenziare "vedo le linee di default perché manca top.svg". — thus highlighting "I see default lines because top.svg is missing".
    ═══════════════════════════════════════════════════════════════════ */
-// Applica alla globals di /cardrender.js i valori correnti dei campi
-// del pannello posizioni. "Mostra" la usa PRIMA di renderizzare: così
-// la preview riflette subito titolo e template digitati (anche non
-// ancora salvati), invece di rileggere dal device un file vecchio.
+// Applica alla globals di /cardrender.js i valori correnti dei campi — Applies to the /cardrender.js globals the current field values
+// del pannello posizioni. "Mostra" la usa PRIMA di renderizzare: così — of the positions panel. "Show" uses it BEFORE rendering: so
+// la preview riflette subito titolo e template digitati (anche non — the preview reflects right away the typed title and template (even not
+// ancora salvati), invece di rileggere dal device un file vecchio. — yet saved), instead of re-reading an old file from the device.
 function applyPositionsFromUI() {
   const num = id => parseFloat(document.getElementById(id).value);
   const colx = [0,1,2,3,4].map(i => num('pos-colx-'+i) || 0);
@@ -2337,10 +2337,10 @@ async function previewCard() {
   if (!sel) return;
   const prog = sel.value || 'XX';
   const mod = 'card';
-  // Usa SEMPRE i valori correnti dei campi del pannello posizioni
-  // (popolati all'apertura da loadPositionsUI): così "Mostra" e
-  // l'anteprima live riflettono subito W/H/X/Y digitati, senza
-  // rileggere dal device un file vecchio né attendere retry.
+  // Usa SEMPRE i valori correnti dei campi del pannello posizioni — ALWAYS uses the current field values of the positions panel
+  // (popolati all'apertura da loadPositionsUI): così "Mostra" e — (populated on open by loadPositionsUI): so "Show" and
+  // l'anteprima live riflettono subito W/H/X/Y digitati, senza — the live preview reflect right away the typed W/H/X/Y, without
+  // rileggere dal device un file vecchio né attendere retry. — re-reading an old file from the device nor waiting for retry.
   applyPositionsFromUI();
   let cardName = '';
   if (prog !== 'XX') {
@@ -2381,7 +2381,7 @@ function initCardPreview() {
   const sel = document.getElementById('card-slot-select');
   if (!sel) return;
   sel.innerHTML = '';
-  // XX = nessuna card (default): lo slot 00 è una vera card magnetica.
+  // XX = nessuna card (default): lo slot 00 è una vera card magnetica. — XX = no card (default): slot 00 is a real magnetic card.
   const none = document.createElement('option');
   none.value = 'XX';
   none.textContent = 'XX';
@@ -2392,9 +2392,9 @@ function initCardPreview() {
     opt.textContent = String(s).padStart(2,'0');
     sel.appendChild(opt);
   }
-  // Anteprima LIVE: ogni modifica a un campo del pannello posizioni
-  // ri-renderizza subito la preview card, così in fase di creazione
-  // si vede l'effetto di W/H/X/Y senza premere "Mostra" né salvare.
+  // Anteprima LIVE: ogni modifica a un campo del pannello posizioni — LIVE preview: every change to a positions panel field
+  // ri-renderizza subito la preview card, così in fase di creazione — re-renders the card preview right away, so while creating
+  // si vede l'effetto di W/H/X/Y senza premere "Mostra" né salvare. — you see the effect of W/H/X/Y without pressing "Show" nor saving.
   document.querySelectorAll('#pos-panel input, #pos-panel select').forEach(inp => {
     inp.addEventListener('input', () => { if (document.getElementById('card-preview')) previewCard(); });
   });
@@ -2403,17 +2403,17 @@ function initCardPreview() {
       if (st && typeof st.active_card_slot === 'number' && st.active_card_slot >= 0) {
         sel.value = String(st.active_card_slot).padStart(2,'0');
       }
-      previewCard();   // sempre: senza card attiva resta su XX
+      previewCard();   // sempre: senza card attiva resta su XX — always: stays on XX without an active card
     }).catch(e => previewCard());
   } catch(e) { previewCard(); }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   PANNELLO POSIZIONI TESTO — legge/scrive GRID_COL_X/GRID_ROW_Y/
-   FREE_ROW_Y (variabili globali di /cardrender.js, incluso sopra) e
-   le persiste su /api/card_positions. Le righe FREE sono a numero
-   variabile: gestite come lista di coppie KEY/Y aggiungibili/
-   rimuovibili, non un numero fisso di campi.
+   PANNELLO POSIZIONI TESTO — legge/scrive GRID_COL_X/GRID_ROW_Y/ — TEXT POSITIONS PANEL — reads/writes GRID_COL_X/GRID_ROW_Y/
+   FREE_ROW_Y (variabili globali di /cardrender.js, incluso sopra) e — FREE_ROW_Y (global variables of /cardrender.js, included above) and
+   le persiste su /api/card_positions. Le righe FREE sono a numero — persists them to /api/card_positions. FREE rows have a variable
+   variabile: gestite come lista di coppie KEY/Y aggiungibili/ — count: handled as a list of addable/removable KEY/Y pairs,
+   rimuovibili, non un numero fisso di campi. — not a fixed number of fields.
    ═══════════════════════════════════════════════════════════════════ */
 function renderFreeRowInputs(map) {
   const el = document.getElementById('pos-free-rows');
@@ -2440,7 +2440,7 @@ function collectFreeRowInputs() {
   return out;
 }
 async function loadPositionsUI() {
-  await loadCardPositions();   // in /cardrender.js — aggiorna GRID_COL_X ecc. dal device
+  await loadCardPositions();   // in /cardrender.js — aggiorna GRID_COL_X ecc. dal device — updates GRID_COL_X etc. from the device
   GRID_COL_X.forEach((v,i) => { const el = document.getElementById('pos-colx-'+i); if (el) el.value = v; });
   GRID_ROW_Y.forEach((v,i) => { const el = document.getElementById('pos-rowy-'+i); if (el) el.value = v; });
   renderFreeRowInputs(FREE_ROW_Y);
@@ -2471,10 +2471,10 @@ async function savePositions() {
     card_name_x: cardNameX, card_name_y: cardNameY,
     templates: templates
   });
-  // Salvataggio verificato: il device può perdere una POST (instabilità
-  // WiFi/stack) lasciando il vecchio file — sintomo "le posizioni
-  // tornano a zero". Quindi: scrivi, rileggi, confronta; ritenta fino a
-  // 3 volte; segnala solo se nessun tentativo è andato a buon fine.
+  // Salvataggio verificato: il device può perdere una POST (instabilità — Verified save: the device may drop a POST (instability
+  // WiFi/stack) lasciando il vecchio file — sintomo "le posizioni — WiFi/stack) leaving the old file — symptom "the positions
+  // tornano a zero". Quindi: scrivi, rileggi, confronta; ritenta fino a — go back to zero". So: write, re-read, compare; retry up to
+  // 3 volte; segnala solo se nessun tentativo è andato a buon fine. — 3 times; report only if no attempt succeeded.
   let saved = false;
   for (let attempt = 0; attempt < 3 && !saved; attempt++) {
     try {
@@ -2503,11 +2503,11 @@ function resetPositionsToDefault() {
   document.getElementById('pos-card-name-y').value = DEFAULT_CARD_NAME_Y;
   document.getElementById('pos-tpl-top').value = '';
   document.getElementById('pos-tpl-bottom').value = '';
-  // Non salva da solo — resta sui campi finché non premi "Salva posizioni",
-  // così puoi controllare prima di sovrascrivere quanto avevi sul device.
+  // Non salva da solo — resta sui campi finché non premi "Salva posizioni", — Doesn't save by itself — stays on the fields until you press "Save positions",
+  // così puoi controllare prima di sovrascrivere quanto avevi sul device. — so you can check before overwriting what you had on the device.
 }
 
-// Backup: scarica il file /overlay_pos.json dal device sul PC.
+// Backup: scarica il file /overlay_pos.json dal device sul PC. — Backup: downloads the /overlay_pos.json file from the device to the PC.
 async function downloadPosFile() {
   try {
     const r = await fetch(API+'/api/card_positions');
@@ -2523,9 +2523,9 @@ async function downloadPosFile() {
   } catch(e) { alert(e.message); }
 }
 
-// Restore: apre un overlay_pos.json dal PC e ne carica i valori nel
-// pannello (stessa logica di loadPositionsUI). Non scrive subito sul
-// device: serve premere "Salva posizioni" per controllare prima.
+// Restore: apre un overlay_pos.json dal PC e ne carica i valori nel — Restore: opens an overlay_pos.json from the PC and loads its values into the
+// pannello (stessa logica di loadPositionsUI). Non scrive subito sul — panel (same logic as loadPositionsUI). Doesn't write right away to the
+// device: serve premere "Salva posizioni" per controllare prima. — device: you must press "Save positions" to check first.
 async function uploadPosFile() {
   const input = document.getElementById('pos-file');
   const file = input.files[0];
@@ -2556,9 +2556,9 @@ async function uploadPosFile() {
   previewCard();
 }
 
-// loadRaw()/loadModulesForSelect() NON devono poter impedire l'init
-// dell'anteprima: un loro errore sincrono fermerebbe lo script prima di
-// arrivare a posReady e il pannello resterebbe vuoto. Isolali.
+// loadRaw()/loadModulesForSelect() NON devono poter impedire l'init — loadRaw()/loadModulesForSelect() must NOT be able to prevent the preview init
+// dell'anteprima: un loro errore sincrono fermerebbe lo script prima di — a synchronous error of theirs would stop the script before
+// arrivare a posReady e il pannello resterebbe vuoto. Isolali. — reaching posReady and the panel would stay empty. Isolate them.
 try { loadRaw(); } catch(e) {}
 try { loadModulesForSelect(); } catch(e) {}
 const posReady = loadPositionsUI();
@@ -2569,11 +2569,11 @@ checkSvgTemplates().then(missing => {
   el.style.display = 'block';
   el.textContent = t('svg_missing_pre') + missing.join(', ') + t('svg_missing_post');
 }).catch(() => {});
-// L'anteprima deve partire SOLO dopo che loadPositionsUI() (che attende
-// loadCardPositions() -> /api/card_positions) ha impostato CARD_TEMPLATES:
-// altrimenti renderizza il fallback perché i template non sono ancora
-// caricati (race condition). Via Promise.resolve, e con .catch, così
-// initCardPreview parte SEMPRE — anche se loadPositionsUI fallisse.
+// L'anteprima deve partire SOLO dopo che loadPositionsUI() (che attende — The preview must start ONLY after loadPositionsUI() (which waits
+// loadCardPositions() -> /api/card_positions) ha impostato CARD_TEMPLATES: — loadCardPositions() -> /api/card_positions) has set CARD_TEMPLATES:
+// altrimenti renderizza il fallback perché i template non sono ancora — otherwise it renders the fallback because templates are not yet
+// caricati (race condition). Via Promise.resolve, e con .catch, così — loaded (race condition). Via Promise.resolve, and with .catch, so
+// initCardPreview parte SEMPRE — anche se loadPositionsUI fallisse. — initCardPreview ALWAYS runs — even if loadPositionsUI fails.
 Promise.resolve(posReady)
   .then(() => initCardPreview())
   .catch(() => initCardPreview());
@@ -2582,7 +2582,7 @@ Promise.resolve(posReady)
 </html>)rawhtml";
 
 /* ═══════════════════════════════════════════════════════════════════
-   VARIABILI GLOBALI
+   VARIABILI GLOBALI — GLOBAL VARIABLES
    ═══════════════════════════════════════════════════════════════════ */
 WebServer server(WIFI_PORT);
 TMS1500_State *g_cpu  = nullptr;
@@ -2592,19 +2592,19 @@ KeyboardState *g_kbd  = nullptr;
 static bool captive_mode = false;
 static DNSServer dnsServer;
 
-// ── Watchdog riconnessione WiFi ─────────────────────────────
-// WiFi.setAutoReconnect(true) (in wifi_try_connect) gestisce da solo
-// le interruzioni brevi (es. router che si riavvia). Questi
-// parametri controllano l'intervento manuale quando quello non basta:
-// nessun controllo periodico esisteva prima, quindi una rete persa
-// per davvero lasciava il dispositivo bloccato in silenzio, con il
-// LED di stato che continuava a segnalare "connesso".
+// ── Watchdog riconnessione WiFi — WiFi reconnection watchdog ─────────
+// WiFi.setAutoReconnect(true) (in wifi_try_connect) gestisce da solo — WiFi.setAutoReconnect(true) (in wifi_try_connect) handles by itself
+// le interruzioni brevi (es. router che si riavvia). Questi — short interruptions (e.g. a router that reboots). These
+// parametri controllano l'intervento manuale quando quello non basta: — parameters control the manual intervention when that is not enough:
+// nessun controllo periodico esisteva prima, quindi una rete persa — no periodic check existed before, so a truly lost network
+// per davvero lasciava il dispositivo bloccato in silenzio, con il — left the device silently stuck, with the
+// LED di stato che continuava a segnalare "connesso". — status LED that kept reporting "connected".
 #define WIFI_STATUS_POLL_MS      5000  
- // ogni quanto controllare WiFi.status()
-#define WIFI_GRACE_BEFORE_RETRY_MS 20000 // margine di tempo dato all'auto-reconnect nativo
-#define WIFI_RETRY_COOLDOWN_MS   60000  // minimo tra due tentativi manuali di riconnessione
+ // ogni quanto controllare WiFi.status() — how often to check WiFi.status()
+#define WIFI_GRACE_BEFORE_RETRY_MS 20000 // margine di tempo dato all'auto-reconnect nativo — grace time given to the native auto-reconnect
+#define WIFI_RETRY_COOLDOWN_MS   60000  // minimo tra due tentativi manuali di riconnessione — minimum between two manual reconnection attempts
 static unsigned long wifi_last_poll_ms = 0;
-static unsigned long wifi_disconnected_since_ms = 0;  // 0 = attualmente connesso
+static unsigned long wifi_disconnected_since_ms = 0;  // 0 = attualmente connesso — 0 = currently connected
 static unsigned long wifi_last_retry_ms = 0;
 #define MAX_CREDENTIALS 4
 typedef struct {
@@ -2615,7 +2615,7 @@ typedef struct {
 static WiFiCredential wifi_creds[MAX_CREDENTIALS];
 static int wifi_cred_count = 0;
 /* ═══════════════════════════════════════════════════════════════════
-   HELPER JSON grezzo (senza librerie esterne)
+   HELPER JSON grezzo (senza librerie esterne) — Raw JSON helper (without external libraries)
    ═══════════════════════════════════════════════════════════════════ */
 static String json_extract(const String& json, const char* key) {
     String k = String("\"") + key + "\"";
@@ -2624,13 +2624,13 @@ int idx = json.indexOf(k);
     int colon = json.indexOf(':', idx + k.length());
 if (colon < 0) return "";
     int start = colon + 1;
-// Salta eventuali spazi vuoti
+// Salta eventuali spazi vuoti — Skip any blank spaces
     while (start < json.length() && (json[start] == ' ' || json[start] == '\t')) start++;
 if (json[start] == '\"') {
         int end = start + 1;
         while (end < json.length()) {
             if (json[end] == '\"' && json[end-1] != '\\') break;
-// Rispetta l'escape \ "
+// Rispetta l'escape \ " — Respects the \ " escape
             end++;
         }
         return json.substring(start + 1, end);
@@ -2642,13 +2642,13 @@ if (json[start] == '\"') {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   PERSISTENZA CREDENZIALI (NVS — Non-Volatile Storage)
+   PERSISTENZA CREDENZIALI (NVS — Non-Volatile Storage) — CREDENTIALS PERSISTENCE (NVS — Non-Volatile Storage)
    ═══════════════════════════════════════════════════════════════════ */
 #include <Preferences.h>
 
 static Preferences wifi_prefs;
 
-// ─── Impostazioni persistenti generiche (NVS, namespace separato) ──
+// ─── Impostazioni persistenti generiche (NVS, namespace separato) — generic persistent settings (NVS, separate namespace) ──
 static Preferences settings_prefs;
 #define NVS_SETTINGS_NS   "ti59cfg"
 #define NVS_KEY_REALTIME  "realtime"
@@ -2680,11 +2680,11 @@ if (libmod.length() > 0) {
     }
 }
 
-// Implementazione reale dell'hook "debole" dichiarato in tms1500.h:
-// sovrascrive quello no-op di tms1500.cpp.
-//Chiamato sia dal toggle web
-// (/api/timing) sia dal combo fisico +,-,x,/ sulla tastiera — in
-// entrambi i casi la scelta viene ricordata tra un riavvio e l'altro.
+// Implementazione reale dell'hook "debole" dichiarato in tms1500.h: — Real implementation of the "weak" hook declared in tms1500.h:
+// sovrascrive quello no-op di tms1500.cpp. — overrides the no-op one in tms1500.cpp.
+//Chiamato sia dal toggle web — Called both from the web toggle
+// (/api/timing) sia dal combo fisico +,-,x,/ sulla tastiera — in — (/api/timing) and from the physical key combo +,-,x,/ on the keypad — in
+// entrambi i casi la scelta viene ricordata tra un riavvio e l'altro. — both cases the choice is remembered across reboots.
 void tms1500_on_timing_changed(bool realistic) {
     if (!settings_prefs.begin(NVS_SETTINGS_NS, false)) {
         Serial.println("[CFG] Impossibile aprire NVS per salvare il timing");
@@ -2695,11 +2695,11 @@ return;
     Serial.printf("[CFG] Timing salvato: %s\n", realistic ? "OLD (reale)" : "NEW (moderna)");
 }
 
-// Implementazione reale dell'hook "debole" dichiarato in
-// library_module.h: ricorda l'ultimo modulo innestato (o "nessuno")
-// tra un riavvio e l'altro, esattamente come il timing sopra.
+// Implementazione reale dell'hook "debole" dichiarato in — Real implementation of the "weak" hook declared in
+// library_module.h: ricorda l'ultimo modulo innestato (o "nessuno") — library_module.h: remembers the last module plugged in (or "none")
+// tra un riavvio e l'altro, esattamente come il timing sopra. — between reboots, exactly like the timing above.
 void library_on_module_changed(const char *id) {
-    tms1500_on_library_module_changed(id);   // reset stato CPU/ROM (v. tms1500.cpp)
+    tms1500_on_library_module_changed(id);   // reset stato CPU/ROM (v. tms1500.cpp) — reset CPU/ROM state (see tms1500.cpp)
     if (!settings_prefs.begin(NVS_SETTINGS_NS, false)) {
         Serial.println("[CFG] Impossibile aprire NVS per salvare il modulo");
 return;
@@ -2774,7 +2774,7 @@ if (wifi_creds[i].ssid[0]) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   CONNESSIONE
+   CONNESSIONE — CONNECTION
    ═══════════════════════════════════════════════════════════════════ */
 static bool wifi_try_connect(const char* ssid, const char* pass, int timeout_ms) {
     WiFi.disconnect(true);
@@ -2794,9 +2794,9 @@ retries++;
     }
     if (WiFi.status() == WL_CONNECTED) {
         Serial.printf("[WiFi] Connesso a %s, IP %s\n", ssid, WiFi.localIP().toString().c_str());
-        // Disabilita il modem sleep: su reti affollate/instabili il power
-        // save causa drop frequenti e riconnessioni lente ("fatica a
-        // riconnettersi"). Costa più energia ma rende il link stabile.
+        // Disabilita il modem sleep: su reti affollate/instabili il power — Disables modem sleep: on crowded/unstable networks the power
+        // save causa drop frequenti e riconnessioni lente ("fatica a — save causes frequent drops and slow reconnections ("struggles to
+        // riconnettersi"). Costa più energia ma rende il link stabile. — reconnect"). Costs more energy but makes the link stable.
         WiFi.setSleep(false);
         WiFi.setAutoReconnect(true);
         return true;
@@ -2808,21 +2808,21 @@ retries++;
 
 static bool wifi_try_stored_creds() {
     if (wifi_cred_count == 0) return false;
-    // 1) Tentativo DIRETTO senza scansione: il driver ricorda la rete,
-    //    quindi su una rete affollata la riconnessione non deve dipendere
-    //    da una scansione completa (che può fallire o rallentare molto).
+    // 1) Tentativo DIRETTO senza scansione: il driver ricorda la rete, — 1) DIRECT attempt without scanning: the driver remembers the network,
+    //    quindi su una rete affollata la riconnessione non deve dipendere —    so on a crowded network reconnection must not depend
+    //    da una scansione completa (che può fallire o rallentare molto). —    on a full scan (which can fail or slow down a lot).
     for (int c = 0; c < MAX_CREDENTIALS; c++) {
         if (wifi_creds[c].ssid[0] && wifi_try_connect(wifi_creds[c].ssid, wifi_creds[c].pass, 15000)) {
             return true;
         }
     }
-    // 2) Fallback: scansione (con retry) e connessione alla rete trovata.
+    // 2) Fallback: scansione (con retry) e connessione alla rete trovata. — 2) Fallback: scan (with retry) and connection to the found network.
     WiFi.mode(WIFI_STA);
     delay(100);
     int n = -1;
     for (int attempt = 0; attempt < 3 && n < 0; attempt++) {
         n = WiFi.scanNetworks();
-        if (n < 0) vTaskDelay(pdMS_TO_TICKS(1500));   // scan non pronta/fallita, riprova
+        if (n < 0) vTaskDelay(pdMS_TO_TICKS(1500));   // scan non pronta/fallita, riprova — scan not ready/failed, retry
     }
     if (n <= 0) { WiFi.scanDelete(); return false; }
     for (int i = 0; i < n; i++) {
@@ -2851,18 +2851,18 @@ Serial.printf("[WiFi] AP Setup IP: %s\n", WiFi.softAPIP().toString().c_str());
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   RISPOSTE HTTP
+   RISPOSTE HTTP — HTTP RESPONSES
    ═══════════════════════════════════════════════════════════════════ */
 
-// Escaping minimo per inserire una stringa ARBITRARIA dentro un valore
-// JSON costruito a mano con concatenazione (id "+String(...)+" ecc.).
-// Ogni stringa che non è un letterale scritto da noi (nomi scheda,
-// id/nome modulo, titoli programma, nomi file) deve passare da qui:
-// senza escaping, un singolo carattere '"' o '\' nel valore rompe la
-// struttura del JSON — nella migliore delle ipotesi un parse error
-// lato client, nella peggiore un'iniezione di chiavi/valori JSON
-// arbitrari se quella stringa arriva da input utente (es. nome scheda
-// scelto da web).
+// Escaping minimo per inserire una stringa ARBITRARIA dentro un valore — Minimal escaping to insert an ARBITRARY string into a value
+// JSON costruito a mano con concatenazione (id "+String(...)+" ecc.). — in hand-built JSON via concatenation (id "+String(...)+" etc.).
+// Ogni stringa che non è un letterale scritto da noi (nomi scheda, — Every string that is not a literal written by us (card names,
+// id/nome modulo, titoli programma, nomi file) deve passare da qui: — module id/name, program titles, file names) must go through here:
+// senza escaping, un singolo carattere '"' o '\' nel valore rompe la — without escaping, a single '"' or '\' character in the value breaks the
+// struttura del JSON — nella migliore delle ipotesi un parse error — JSON structure — at best a parse error
+// lato client, nella peggiore un'iniezione di chiavi/valori JSON — on the client side, at worst an injection of arbitrary JSON keys/values
+// arbitrari se quella stringa arriva da input utente (es. nome scheda — if that string comes from user input (e.g. card name
+// scelto da web). — chosen from the web).
 static String json_escape(const char *s) {
     String out;
     if (!s) return out;
@@ -2899,12 +2899,12 @@ static void send_err(const char *msg) {
     send_json(400, buf);
 }
 
-// Risposta STREAMING (chunked). Evita di costruire una String gigante
-// con centinaia di "+=" (frantumava l'heap e il singolo server.send()
-// di una risposta da 15-32 KB si bloccava a metà, consegnando solo
-// una parte del body). Si apre con i soli header (Transfer-Encoding:
-// chunked), poi il body viene inviato a pezzetti piccoli con
-// sendContent, ciascuno un write() TCP di dimensioni ridotte.
+// Risposta STREAMING (chunked). Evita di costruire una String gigante — STREAMING (chunked) response. Avoids building a giant String
+// con centinaia di "+=" (frantumava l'heap e il singolo server.send() — with hundreds of "+=" (it fragmented the heap and the single server.send()
+// di una risposta da 15-32 KB si bloccava a metà, consegnando solo — of a 15-32 KB response got stuck midway, delivering only
+// una parte del body). Si apre con i soli header (Transfer-Encoding: — part of the body). It opens with headers only (Transfer-Encoding:
+// chunked), poi il body viene inviato a pezzetti piccoli con — chunked), then the body is sent in small pieces with
+// sendContent, ciascuno un write() TCP di dimensioni ridotte. — sendContent, each one a reduced-size TCP write().
 static void begin_stream(int code, const char *content_type) {
     server.sendHeader("Access-Control-Allow-Origin", "*");
     server.setContentLength(CONTENT_LENGTH_UNKNOWN);
@@ -2916,11 +2916,11 @@ static void stream_flush(String &chunk) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   HANDLER PAGINA RADICE
+   HANDLER PAGINA RADICE — ROOT PAGE HANDLER
    ═══════════════════════════════════════════════════════════════════ */
-// HEAD/GET per /cardrender.js e /i18n.js: il browser riceve
-// Cache-Control: no-cache così non riusa mai copie vecchie dopo un
-// aggiornamento firmware (era causa di pagine/JS stantii).
+// HEAD/GET per /cardrender.js e /i18n.js: il browser riceve — HEAD/GET for /cardrender.js and /i18n.js: the browser receives
+// Cache-Control: no-cache così non riusa mai copie vecchie dopo un — Cache-Control: no-cache so it never reuses old copies after a
+// aggiornamento firmware (era causa di pagine/JS stantii). — firmware update (it was the cause of stale pages/JS).
 static void no_cache() { server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate"); }
 
 static void handle_i18n_js() {
@@ -2942,7 +2942,7 @@ else
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   HANDLER PAGINA GESTIONE
+   HANDLER PAGINA GESTIONE — MANAGEMENT PAGE HANDLER
    ═══════════════════════════════════════════════════════════════════ */
 static bool god_mode_enabled(void);
 
@@ -2957,8 +2957,8 @@ static void handle_manage() {
     server.send(200, "text/html", html);
 }
 
-// God mode: true solo se /god_mode.txt esiste su SPIFFS e contiene la
-// frase chiave. Senza il file la pagina Mr. Wolf risponde 404.
+// God mode: true solo se /god_mode.txt esiste su SPIFFS e contiene la — God mode: true only if /god_mode.txt exists on SPIFFS and contains the
+// frase chiave. Senza il file la pagina Mr. Wolf risponde 404. — key phrase. Without the file the Mr. Wolf page answers 404.
 static bool god_mode_enabled() {
     if (!SPIFFS.exists("/god_mode.txt")) return false;
     File f = SPIFFS.open("/god_mode.txt", "r");
@@ -2978,7 +2978,7 @@ static void handle_wolf() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   HANDLER PAGINA OVERLAY TASTIERA
+   HANDLER PAGINA OVERLAY TASTIERA — KEYBOARD OVERLAY PAGE HANDLER
    ═══════════════════════════════════════════════════════════════════ */
 static void handle_overlays_page() {
     no_cache();
@@ -2986,12 +2986,12 @@ static void handle_overlays_page() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   HANDLER ESISTENTI
+   HANDLER ESISTENTI — EXISTING HANDLERS
    ═══════════════════════════════════════════════════════════════════ */
 static void handle_timing_toggle() {
-    // Se viene passato ?mult=NN (10..200, percentuale del timing Old),
-    // regola il moltiplicatore e lo salva in NVS, senza toccare la
-    // modalità reale/moderna.
+    // Se viene passato ?mult=NN (10..200, percentuale del timing Old), — If ?mult=NN is passed (10..200, percentage of Old timing),
+    // regola il moltiplicatore e lo salva in NVS, senza toccare la — it adjusts the multiplier and saves it to NVS, without touching the
+    // modalità reale/moderna. — real/modern mode.
     if (server.hasArg("mult")) {
         int pct = server.arg("mult").toInt();
         if (pct < 10) pct = 10;
@@ -3012,7 +3012,7 @@ static void handle_timing_toggle() {
         enable = server.arg("enable").toInt() != 0;
 } else {
         enable = !tms1500_get_realistic_timing();
-// nessun arg = toggle
+// nessun arg = toggle — no arg = toggle
     }
     tms1500_set_realistic_timing(enable);
     char buf[64];
@@ -3021,9 +3021,9 @@ snprintf(buf, sizeof(buf), "{\"ok\":true,\"realistic_timing\":%s}",
 send_json(200, buf);
 }
 
-// Regola la durata di accensione del motore di espulsione scheda:
-// GET/POST /api/eject?ms=NNN (50..3000). Senza argomento restituisce
-// il valore corrente. Salvato in NVS come le altre impostazioni.
+// Regola la durata di accensione del motore di espulsione scheda: — Adjusts the on-time of the card ejection motor:
+// GET/POST /api/eject?ms=NNN (50..3000). Senza argomento restituisce — GET/POST /api/eject?ms=NNN (50..3000). Without argument it returns
+// il valore corrente. Salvato in NVS come le altre impostazioni. — the current value. Saved in NVS like the other settings.
 static void handle_eject_set() {
     uint16_t ms = rfid_reader_get_eject_ms();
     if (server.hasArg("ms")) {
@@ -3043,17 +3043,17 @@ static void handle_eject_set() {
     send_json(200, buf);
 }
 
-// Attiva/disattiva il tracer passo-passo di debug (stampa su Serial ogni
-// istruzione eseguita da exec_program_step, vedi tms1500_set_trace_steps
-// in tms1500.cpp). Stesso pattern di handle_timing_toggle: POST
-// /api/trace con ?enable=0|1, o senza argomento per fare toggle.
+// Attiva/disattiva il tracer passo-passo di debug (stampa su Serial ogni — Enables/disables the step-by-step debug tracer (prints to Serial every
+// istruzione eseguita da exec_program_step, vedi tms1500_set_trace_steps — instruction executed by exec_program_step, see tms1500_set_trace_steps
+// in tms1500.cpp). Stesso pattern di handle_timing_toggle: POST — in tms1500.cpp). Same pattern as handle_timing_toggle: POST
+// /api/trace con ?enable=0|1, o senza argomento per fare toggle. — /api/trace with ?enable=0|1, or without argument to toggle.
 static void handle_trace_toggle() {
     bool enable;
     if (server.hasArg("enable")) {
         enable = server.arg("enable").toInt() != 0;
     } else {
         enable = !tms1500_get_trace_steps();
-        // nessun arg = toggle
+// nessun arg = toggle — no arg = toggle
     }
     tms1500_set_trace_steps(enable);
     char buf[64];
@@ -3072,9 +3072,9 @@ const char *angle_mode = (g_cpu->trig_mode == 1) ? "RAD"
                             : "DEG";
     const LibraryModule *active_mod = library_get_active();
     uint8_t active_page = tms1500_get_active_lib_page();
-    // Nome della scheda magnetica attiva, se ce n'è una — bounds check
-    // esplicito (active_slot è int8_t, può essere -1 = nessuna scheda,
-    // stessa cautela già usata per gli altri accessi a slots[]).
+    // Nome della scheda magnetica attiva, se ce n'è una — Name of the active magnetic card, if any — explicit bounds check
+    // esplicito (active_slot è int8_t, può essere -1 = nessuna scheda, — (active_slot is int8_t, can be -1 = no card,
+    // stessa cautela già usata per gli altri accessi a slots[]). — same caution already used for the other accesses to slots[]).
     String active_card_name = "";
     if (g_card->active_slot >= 0 && g_card->active_slot < CARD_SLOT_COUNT &&
         g_card->slots[g_card->active_slot].valid) {
@@ -3126,11 +3126,11 @@ send_json(200, buf);
 }
 
 static void handle_cards_get() {
-    // Dimensionato sul vero worst-case (CARD_SLOT_COUNT slot, ciascuno
-    // con nome alla lunghezza massima), non più un char[2048] fisso
-    // sullo stack: quel valore era insufficiente per liste con molte
-    // schede (vedi bugfix in cardemu_list, cardemu.cpp) — qui aggiungo
-    // un secondo livello di difesa, indipendente dal primo.
+    // Dimensionato sul vero worst-case (CARD_SLOT_COUNT slot, ciascuno — Sized for the real worst case (CARD_SLOT_COUNT slots, each one
+    // con nome alla lunghezza massima), non più un char[2048] fisso — with a name at maximum length), no longer a fixed char[2048]
+    // sullo stack: quel valore era insufficiente per liste con molte — on the stack: that value was insufficient for lists with many
+    // schede (vedi bugfix in cardemu_list, cardemu.cpp) — qui aggiungo — cards (see bugfix in cardemu_list, cardemu.cpp) — here I add
+    // un secondo livello di difesa, indipendente dal primo. — a second layer of defense, independent from the first.
     int cap = CARD_SLOT_COUNT * (CARD_NAME_LEN + 40) + 8;
     char *buf = (char*)malloc(cap);
     if (!buf) { send_err("out of memory"); return; }
@@ -3143,22 +3143,22 @@ static void handle_card_get() {
     if (!server.hasArg("slot")) { send_err("missing slot"); return;
 }
     int slot = server.arg("slot").toInt();
-    // BUGFIX SICUREZZA (OOB read, stessa famiglia del bug in
-    // cardemu_delete): mancava del tutto il controllo dei limiti.
-    // Con slot fuori range, g_card->slots[slot] legge fuori
-    // dall'array — e il codice sotto usa s->prog_len_a (letto da
-    // quella memoria arbitraria) come contatore di un loop che scrive
-    // in hex_a[]: un valore garbage grande vorrebbe dire un SECONDO
-    // overflow a cascata, questa volta in scrittura. Raggiungibile
-    // senza autenticazione via GET /api/card?slot=99 (o slot=-1).
+    // BUGFIX SICUREZZA (OOB read, stessa famiglia del bug in — SECURITY BUGFIX (OOB read, same family as the bug in
+    // cardemu_delete): mancava del tutto il controllo dei limiti. — cardemu_delete): the bounds check was missing entirely.
+    // Con slot fuori range, g_card->slots[slot] legge fuori — With an out-of-range slot, g_card->slots[slot] reads outside
+    // dall'array — e il codice sotto usa s->prog_len_a (letto da — the array — and the code below uses s->prog_len_a (read from
+    // quella memoria arbitraria) come contatore di un loop che scrive — that arbitrary memory) as the counter of a loop that writes
+    // in hex_a[]: un valore garbage grande vorrebbe dire un SECONDO — into hex_a[]: a large garbage value would mean a SECOND
+    // overflow a cascata, questa volta in scrittura. Raggiungibile — cascading overflow, this time on write. Reachable
+    // senza autenticazione via GET /api/card?slot=99 (o slot=-1). — without authentication via GET /api/card?slot=99 (or slot=-1).
     if (slot < 0 || slot >= CARD_SLOT_COUNT || !g_card->slots[slot].valid) {
         send_err("empty slot"); return;
 }
 
     const CardSlot *s = &g_card->slots[slot];
 
-    // prog_hex: hex grezzo, tenuto per compatibilità con chi consuma
-    // già questo campo (round-trip di editing puro).
+    // prog_hex: hex grezzo, tenuto per compatibilità con chi consuma — prog_hex: raw hex, kept for compatibility with those who consume
+    // già questo campo (round-trip di editing puro). — this field already (pure editing round-trip).
 char hex_a[CARD_PROG_BYTES*3+2];
     int pos = 0;
     for (int i = 0; i < s->prog_len_a; i++) {
@@ -3167,10 +3167,10 @@ pos += 3;
     }
     if (pos > 0) hex_a[pos-1] = 0;
     else hex_a[0] = 0;
-// prog_listing: stesso formato "passo | hex | comando" usato da
-    // /api/prog, così caricare una scheda mostra la lista leggibile
-    // esattamente come scaricare il programma corrente — prima qui si
-    // vedevano solo i codici esadecimali grezzi.
+// prog_listing: stesso formato "passo | hex | comando" usato da — prog_listing: same "step | hex | command" format used by
+    // /api/prog, così caricare una scheda mostra la lista leggibile — /api/prog, so loading a card shows the readable list
+    // esattamente come scaricare il programma corrente — prima qui si — exactly like downloading the current program — before, here you
+    // vedevano solo i codici esadecimali grezzi. — only saw the raw hexadecimal codes.
 String listing;
     listing.reserve((size_t)s->prog_len_a * 20 + 8);
 		listing += " Passo | Hex | Comando\r\n";
@@ -3182,9 +3182,9 @@ char row[48];
         listing += row;
 }
 
-    // JSON: prog_listing incorporata come stringa, con newline ed
-    // eventuali virgolette già presenti nei nomi comando (nessuna qui,
-    // ma restiamo prudenti) escapate correttamente.
+    // JSON: prog_listing incorporata come stringa, con newline ed — JSON: prog_listing embedded as a string, with newlines and
+    // eventuali virgolette già presenti nei nomi comando (nessuna qui, — any quotes already present in command names (none here,
+    // ma restiamo prudenti) escapate correttamente. — but let's stay cautious) escaped correctly.
 String json = "{\"slot\":" + String(slot) +
                   ",\"name\":\"" + json_escape(s->name) +
                   "\",\"steps\":" + String(s->prog_len_a) +
@@ -3206,19 +3206,19 @@ else if (c == '\n') json += "\\n";
 static void handle_card_post() {
     if (!server.hasArg("slot")) { send_err("missing slot"); return; }
     int slot = server.arg("slot").toInt();
-    // BUG: `server.arg("name")` restituisce una String TEMPORANEA.
-    // Chiamare .c_str() direttamente su di essa dà un puntatore che
-    // diventa non valido appena finisce questa istruzione (la String
-    // temporanea viene distrutta a fine espressione) — cardemu_write()
-    // riceve quindi un puntatore già "pendente" (dangling). Il
-    // comportamento è indefinito: 
-	//può sembrare funzionare se quella
-    // zona di memoria non è ancora stata sovrascritta (es. la prima
-    // scheda salvata in sessione), e fallire silenziosamente non
-    // appena altre allocazioni (richieste WiFi, altre String) hanno
-    // riusato quell'area — esattamente il motivo per cui la seconda
-    // scheda perdeva il nome mentre la prima no. La String va tenuta
-    // in una variabile con vita propria per tutta la funzione.
+    // BUG: `server.arg("name")` restituisce una String TEMPORANEA. — BUG: `server.arg("name")` returns a TEMPORARY String.
+    // Chiamare .c_str() direttamente su di essa dà un puntatore che — Calling .c_str() directly on it gives a pointer that
+    // diventa non valido appena finisce questa istruzione (la String — becomes invalid as soon as this statement ends (the String
+    // temporanea viene distrutta a fine espressione) — cardemu_write() — temporary is destroyed at the end of the expression) — cardemu_write()
+    // riceve quindi un puntatore già "pendente" (dangling). Il — therefore receives an already "dangling" pointer. The
+    // comportamento è indefinito:  — behavior is undefined: 
+	//può sembrare funzionare se quella — it may seem to work if that
+    // zona di memoria non è ancora stata sovrascritta (es. la prima — memory area has not been overwritten yet (e.g. the first
+    // scheda salvata in sessione), e fallire silenziosamente non — card saved in session), and fail silently as soon as
+    // appena altre allocazioni (richieste WiFi, altre String) hanno — other allocations (WiFi requests, other Strings) have
+    // riusato quell'area — esattamente il motivo per cui la seconda — reused that area — exactly why the second
+    // scheda perdeva il nome mentre la prima no. La String va tenuta — card lost its name while the first didn't. The String must be kept
+    // in una variabile con vita propria per tutta la funzione. — in a variable with its own lifetime for the whole function.
 	String nameStr = server.hasArg("name") ? server.arg("name") : String("Card");
     const char *name = nameStr.c_str();
     if (cardemu_write(g_card, g_cpu, slot, name)) { tms1500_mark_prog_saved();
@@ -3226,21 +3226,21 @@ send_ok(); }
     else send_err("write failed");
 }
 
-// Implementazione reale dell'hook "debole" dichiarato in tms1500.h:
-// sovrascrive quello no-op di tms1500.cpp perché questo file (compilato
-// nello stesso binario) fornisce una definizione forte dello stesso
-// simbolo.
-//Trova il primo slot libero e genera un nome sequenziale
-// univoco "mc_NNN" (non sovrascrive mai schede esistenti), poi appoggia
-// tutto sullo stesso cardemu_write() già usato dal salvataggio via web
-// — così le schede salvate dal tasto fisico compaiono/si gestiscono
-// esattamente come quelle salvate da browser.
+// Implementazione reale dell'hook "debole" dichiarato in tms1500.h: — Real implementation of the "weak" hook declared in tms1500.h:
+// sovrascrive quello no-op di tms1500.cpp perché questo file (compilato — overrides the no-op one in tms1500.cpp because this file (compiled
+// nello stesso binario) fornisce una definizione forte dello stesso — into the same binary) provides a strong definition of the same
+// simbolo. — symbol.
+//Trova il primo slot libero e genera un nome sequenziale — Finds the first free slot and generates a sequential name
+// univoco "mc_NNN" (non sovrascrive mai schede esistenti), poi appoggia — unique "mc_NNN" (never overwrites existing cards), then relies
+// tutto sullo stesso cardemu_write() già usato dal salvataggio via web — on the same cardemu_write() already used by web saving
+// — così le schede salvate dal tasto fisico compaiono/si gestiscono — so cards saved from the physical key appear/are managed
+// esattamente come quelle salvate da browser. — exactly like those saved from the browser.
 void tms1500_on_physical_write(TMS1500_State *cpu) {
     if (!g_card) return;
 
-    // Lettore NFC presente: il WRITE fisico diventa "arma la scrittura" —
-    // la TI-59 attende l'inserimento della scheda, che verrà scritta
-    // (slot + tag) e poi espulsa da rfid_reader_handle_insert().
+    // Lettore NFC presente: il WRITE fisico diventa "arma la scrittura" — — NFC reader present: the physical WRITE becomes "arm the write" —
+    // la TI-59 attende l'inserimento della scheda, che verrà scritta — the TI-59 waits for the card insertion, which will be written
+    // (slot + tag) e poi espulsa da rfid_reader_handle_insert(). — (slot + tag) and then ejected by rfid_reader_handle_insert().
     if (rfid_reader_enabled()) {
         rfid_reader_arm_write(-1);
         Serial.println("[CARD] WRITE fisico: attendo inserimento scheda NFC...");
@@ -3280,11 +3280,11 @@ Serial.printf("[CARD] WRITE fisico: salvato slot %d come \"%s\"\n", slot, name);
 }
 }
 
-// GET /api/modules — elenca i moduli libreria compilati/registrati e
-// indica quale è attivo (uno solo alla volta, come lo slot fisico
-// reale).
-//Ogni modulo include l'elenco dei suoi programmi numerati,
-// così l'interfaccia può mostrare "Op 09 nn -> nome programma".
+// GET /api/modules — elenca i moduli libreria compilati/registrati e — GET /api/modules — lists the compiled/registered library modules and
+// indica quale è attivo (uno solo alla volta, come lo slot fisico — indicates which one is active (only one at a time, like the real physical
+// reale). — slot).
+//Ogni modulo include l'elenco dei suoi programmi numerati, — Each module includes the list of its numbered programs,
+// così l'interfaccia può mostrare "Op 09 nn -> nome programma". — so the UI can show "Op 09 nn -> program name".
 static void handle_modules_get() {
     const LibraryModule *active = library_get_active();
     begin_stream(200, "application/json");
@@ -3318,8 +3318,8 @@ static void handle_modules_get() {
     stream_flush(chunk);
 }
 
-// POST /api/modules — imposta il modulo attivo (arg "id"; vuoto o
-// assente = nessun modulo innestato, come slot vuoto sull'hardware).
+// POST /api/modules — imposta il modulo attivo (arg "id"; vuoto o — POST /api/modules — sets the active module (arg "id"; empty or
+// assente = nessun modulo innestato, come slot vuoto sull'hardware). — absent = no module plugged in, like an empty slot on the hardware).
 static void handle_modules_post() {
     String id = server.hasArg("id") ? server.arg("id") : String("");
     if (library_set_active(id.c_str())) {
@@ -3331,19 +3331,19 @@ static void handle_modules_post() {
     }
 }
 
-// GET /api/modules/listing?id=ml1 — listato completo di TUTTI i
-// programmi di un modulo (di default quello attivo, se ?id non è
-// specificato), non solo di quello eventualmente già scaricato in
-// esecuzione. Formato a colonne "PP SSS HH COMANDO":
-//   PP  = numero programma (2 cifre, quello da digitare dopo Pgm)
-//   SSS = passo all'interno del programma (3 
-//cifre, riparte da 000)
-//   HH  = codice esadecimale
-// stessa idea del listato passo/hex/comando già usato altrove, con
-// in più la colonna del numero programma dato che qui ce ne sono 25
-// concatenati.
-//Utile per sfogliare il contenuto del modulo senza
-// doverli scaricare uno per uno con Pgm nn solo per vederli.
+// GET /api/modules/listing?id=ml1 — listato completo di TUTTI i — GET /api/modules/listing?id=ml1 — complete listing of ALL the
+// programmi di un modulo (di default quello attivo, se ?id non è — programs of a module (by default the active one, if ?id is not
+// specificato), non solo di quello eventualmente già scaricato in — specified), not only the one eventually already downloaded in
+// esecuzione. Formato a colonne "PP SSS HH COMANDO": — execution. Column format "PP SSS HH COMMAND":
+//   PP  = numero programma (2 cifre, quello da digitare dopo Pgm) —   PP  = program number (2 digits, the one to type after Pgm)
+//   SSS = passo all'interno del programma (3  —   SSS = step inside the program (3
+//cifre, riparte da 000) — digits, restarts from 000)
+//   HH  = codice esadecimale —   HH  = hexadecimal code
+// stessa idea del listato passo/hex/comando già usato altrove, con — same idea as the step/hex/command listing used elsewhere, with
+// in più la colonna del numero programma dato che qui ce ne sono 25 — additionally the program number column since here there are 25
+// concatenati. — concatenated.
+//Utile per sfogliare il contenuto del modulo senza — Useful for browsing the module content without
+// doverli scaricare uno per uno con Pgm nn solo per vederli. — having to download them one by one with Pgm nn just to see them.
 static void handle_modules_listing() {
     const LibraryModule *m = server.hasArg("id")
         ?
@@ -3377,27 +3377,27 @@ static void handle_card_delete() {
     if (!server.hasArg("slot")) { send_err("missing slot"); return;
 }
     int slot = server.arg("slot").toInt();
-    // Difesa in profondità (oltre al bounds check ora presente anche
-    // in cardemu_delete()): valida qui l'input grezzo dell'utente,
-    // PRIMA che l'int si restringa a uint8_t nella chiamata sotto
-    // (dove slot=-1 diventerebbe 255).
+    // Difesa in profondità (oltre al bounds check ora presente anche — Defense in depth (besides the bounds check now also present
+    // in cardemu_delete()): valida qui l'input grezzo dell'utente, — in cardemu_delete()): validate here the user's raw input,
+    // PRIMA che l'int si restringa a uint8_t nella chiamata sotto — BEFORE the int narrows to uint8_t in the call below
+    // (dove slot=-1 diventerebbe 255). — (where slot=-1 would become 255).
     if (slot < 0 || slot >= CARD_SLOT_COUNT) { send_err("slot fuori range"); return; }
     if (cardemu_delete(g_card, slot)) send_ok();
     else send_err("delete failed");
 }
 
-// GET /api/card/file?slot=N — scarica una scheda come file di testo
-// (lo stesso JSON già usato internamente su SPIFFS: nome, passi,
-// esadecimale lato A/B — un formato completo e senza perdite, non un
-// nuovo formato da re-implementare).
-//Il download vero e proprio lo fa
-// il JS lato client (downloadFile()), qui basta restituire il testo.
+// GET /api/card/file?slot=N — scarica una scheda come file di testo — GET /api/card/file?slot=N — downloads a card as a text file
+// (lo stesso JSON già usato internamente su SPIFFS: nome, passi, — (the same JSON already used internally on SPIFFS: name, steps,
+// esadecimale lato A/B — un formato completo e senza perdite, non un — side A/B hex — a complete and lossless format, not a
+// nuovo formato da re-implementare). — new format to re-implement).
+//Il download vero e proprio lo fa — The actual download is done by
+// il JS lato client (downloadFile()), qui basta restituire il testo. — the client-side JS (downloadFile()), here it's enough to return the text.
 // ═══════════════════════════════════════════════════════════════════
-// SLIDE ESPLICATIVE PROGRAMMI ROM (SVG trasparenti, come le card
-// cartacee originali TI-59 sopra la tastiera). Da NON confondere con
-// le "card" sopra (quelle sono schede MAGNETICHE per cardemu — dati,
-// non immagini). Convenzione di storage: un file per programma,
-// "/romcard_<id modulo>_<numero programma a 2 cifre>.svg".
+// SLIDE ESPLICATIVE PROGRAMMI ROM (SVG trasparenti, come le card — ROM PROGRAM EXPLANATORY SLIDES (transparent SVGs, like the cards
+// cartacee originali TI-59 sopra la tastiera). Da NON confondere con — original paper TI-59 cards above the keyboard). NOT to be confused with
+// le "card" sopra (quelle sono schede MAGNETICHE per cardemu — dati, — the "cards" above (those are MAGNETIC cards for cardemu — data,
+// non immagini). Convenzione di storage: un file per programma, — not images). Storage convention: one file per program,
+// "/romcard_<id modulo>_<numero programma a 2 cifre>.svg". — "/romcard_<module id>_<2-digit program number>.svg".
 // ═══════════════════════════════════════════════════════════════════
 static String program_card_path(const char *module_id, int page) {
     char path[64];
@@ -3405,9 +3405,9 @@ static String program_card_path(const char *module_id, int page) {
     return String(path);
 }
 
-// GET /api/program_card[?module=ml1&page=1] — se module/page non sono
-// passati, usa il modulo/programma attualmente selezionato sulla ROM
-// attiva. 404 se non c'e' alcuna slide per quella combinazione.
+// GET /api/program_card[?module=ml1&page=1] — se module/page non sono — GET /api/program_card[?module=ml1&page=1] — if module/page are not
+// passati, usa il modulo/programma attualmente selezionato sulla ROM — passed, uses the module/program currently selected on the active
+// attiva. 404 se non c'e' alcuna slide per quella combinazione. — ROM. 404 if there is no slide for that combination.
 static void handle_program_card_get() {
     String module_id;
     int page;
@@ -3429,8 +3429,8 @@ static void handle_program_card_get() {
     f.close();
 }
 
-// POST /api/program_card?module=ml1&page=1 — corpo: contenuto SVG
-// grezzo (stesso pattern "plain body" gia' usato per handle_card_upload).
+// POST /api/program_card?module=ml1&page=1 — corpo: contenuto SVG — POST /api/program_card?module=ml1&page=1 — body: raw SVG content
+// grezzo (stesso pattern "plain body" gia' usato per handle_card_upload). — (same "plain body" pattern already used for handle_card_upload).
 static void handle_program_card_post() {
     if (!server.hasArg("module") || !server.hasArg("page")) {
         send_err("missing module/page"); return;
@@ -3452,35 +3452,35 @@ static void handle_program_card_post() {
 
 
 /* ═══════════════════════════════════════════════════════════════════
-   OVERLAY TASTIERA (dati testuali, non immagini)
-   Copre lo stesso bisogno delle slide SVG sopra ma solo per la
-   striscia overlay dei tasti A-E/A'-E' (o righe libere tipo ML-01
-   MASTER LIBRARY DIAGNOSTIC): niente immagini, un unico file di testo
-   con TUTTE le etichette di TUTTI i moduli/programmi, tenuto in RAM e
-   riscritto per intero ad ogni salvataggio (stesso pattern atomico
-   tmp+rename di cardemu_save_persistent() in cardemu.cpp).
+   OVERLAY TASTIERA (dati testuali, non immagini) — KEYBOARD OVERLAY (textual data, not images)
+   Copre lo stesso bisogno delle slide SVG sopra ma solo per la — Covers the same need as the SVG slides above but only for the
+   striscia overlay dei tasti A-E/A'-E' (o righe libere tipo ML-01 — overlay strip of keys A-E/A'-E' (or free rows like ML-01
+   MASTER LIBRARY DIAGNOSTIC): niente immagini, un unico file di testo — MASTER LIBRARY DIAGNOSTIC): no images, a single text file
+   con TUTTE le etichette di TUTTI i moduli/programmi, tenuto in RAM e — with ALL the labels of ALL modules/programs, kept in RAM and
+   riscritto per intero ad ogni salvataggio (stesso pattern atomico — fully rewritten on every save (same atomic pattern
+   tmp+rename di cardemu_save_persistent() in cardemu.cpp). — tmp+rename of cardemu_save_persistent() in cardemu.cpp).
 
-   Formato riga:  MOD|PROG|TYPE|KEY|TESTO
-     MOD  = id modulo libreria, come restituito da /api/modules (es. "ml1")
-     PROG = numero programma, 2 cifre (es. "01")
-     TYPE = "GRID" — slot standard A,B,C,D,E,A',B',C',D',E'
-            "FREE" — riga libera non riconducibile alla griglia (caso
-                     ML-01): KEY è solo l'ordine di stampa (1,2,3...),
-                     TESTO è la riga così com'è, letterale
-     TESTO = etichetta/riga in UTF-8; non deve contenere '|' né a-capo
+   Formato riga:  MOD|PROG|TYPE|KEY|TESTO — Line format:  MOD|PROG|TYPE|KEY|TEXT
+     MOD  = id modulo libreria, come restituito da /api/modules (es. "ml1") — MOD  = library module id, as returned by /api/modules (e.g. "ml1")
+     PROG = numero programma, 2 cifre (es. "01") — PROG = program number, 2 digits (e.g. "01")
+     TYPE = "GRID" — slot standard A,B,C,D,E,A',B',C',D',E' — TYPE = "GRID" — standard slots A,B,C,D,E,A',B',C',D',E'
+            "FREE" — riga libera non riconducibile alla griglia (caso — "FREE" — free row not traceable to the grid (the ML-01 case)
+                     ML-01): KEY è solo l'ordine di stampa (1,2,3...), — ML-01): KEY is only the print order (1,2,3...),
+                     TESTO è la riga così com'è, letterale — TEXT is the row as-is, literal
+     TESTO = etichetta/riga in UTF-8; non deve contenere '|' né a-capo — TEXT = label/row in UTF-8; must not contain '|' nor newline
 
-   Il frontend (pagina /overlays, o in futuro la mode-bar della
-   calcolatrice) decide come disegnare GRID vs FREE; qui il parsing è
-   identico per entrambi i TYPE, nessuna struct diversa per riga.
+   Il frontend (pagina /overlays, o in futuro la mode-bar della — The frontend (/overlays page, or in the future the mode-bar of the
+   calcolatrice) decide come disegnare GRID vs FREE; qui il parsing è — calculator) decides how to draw GRID vs FREE; here the parsing is
+   identico per entrambi i TYPE, nessuna struct diversa per riga. — identical for both TYPEs, no different struct per row.
    ═══════════════════════════════════════════════════════════════════ */
 #define OVERLAY_FILE "/overlays.txt"
 #define OVERLAY_TMP  "/overlays.tmp"
 
-static String g_overlays_raw;   // intero contenuto file, cache in RAM
+static String g_overlays_raw;   // intero contenuto file, cache in RAM — whole file content, cache in RAM
 
-// Carica /overlays.txt in RAM all'avvio (va richiamata da
-// wifi_server_loop() come lrn_autosave_restore()). File assente non è
-// un errore: prima esecuzione, nessun overlay ancora definito.
+// Carica /overlays.txt in RAM all'avvio (va richiamata da — Loads /overlays.txt into RAM at startup (must be called from
+// wifi_server_loop() come lrn_autosave_restore()). File assente non è — wifi_server_loop() like lrn_autosave_restore()). A missing file is not
+// un errore: prima esecuzione, nessun overlay ancora definito. — an error: first run, no overlay defined yet.
 static void overlays_init() {
     if (!SPIFFS.exists(OVERLAY_FILE)) { g_overlays_raw = ""; return; }
     File f = SPIFFS.open(OVERLAY_FILE, FILE_READ);
@@ -3491,9 +3491,9 @@ static void overlays_init() {
                   (unsigned)g_overlays_raw.length(), OVERLAY_FILE);
 }
 
-// Riscrive per intero il file (save-and-replace, come discusso: un
-// solo file batte tanti piccoli file per overhead SPIFFS e semplicità
-// di scrittura atomica). Aggiorna anche la cache RAM.
+// Riscrive per intero il file (save-and-replace, come discusso: un — Rewrites the whole file (save-and-replace, as discussed: a
+// solo file batte tanti piccoli file per overhead SPIFFS e semplicità — single file beats many small files for SPIFFS overhead and simplicity
+// di scrittura atomica). Aggiorna anche la cache RAM. — of atomic writing). Also updates the RAM cache.
 static bool overlays_save_raw(const String &text) {
     File f = SPIFFS.open(OVERLAY_TMP, FILE_WRITE);
     if (!f) return false;
@@ -3507,9 +3507,9 @@ static bool overlays_save_raw(const String &text) {
     return true;
 }
 
-// Estrae dalla cache RAM le sole righe di un mod/prog e le converte
-// in JSON: [{"type":"GRID","key":"A","attr":"m","text":"..."}, ...].
-// Formato: MOD|PROG|TYPE|KEY|ATTR|TESTO. Parsing manuale riga per riga.
+// Estrae dalla cache RAM le sole righe di un mod/prog e le converte — Extracts from the RAM cache only the rows of a mod/prog and converts them
+// in JSON: [{"type":"GRID","key":"A","attr":"m","text":"..."}, ...]. — to JSON: [{"type":"GRID","key":"A","attr":"m","text":"..."}, ...].
+// Formato: MOD|PROG|TYPE|KEY|ATTR|TESTO. Parsing manuale riga per riga. — Format: MOD|PROG|TYPE|KEY|ATTR|TEXT. Manual row-by-row parsing.
 static String overlays_json_for(const String &mod, const String &prog) {
     String prefix = mod + "|" + prog + "|";
     String out = "[";
@@ -3525,7 +3525,7 @@ static String overlays_json_for(const String &mod, const String &prog) {
         pos = (nl == -1) ? total : nl + 1;
 
         if (!line.startsWith(prefix)) continue;
-        // resto: "TYPE|KEY|ATTR|TESTO"
+        // resto: "TYPE|KEY|ATTR|TESTO" — remainder: "TYPE|KEY|ATTR|TEXT"
         String rest = line.substring(prefix.length());
         int p1 = rest.indexOf('|');
         if (p1 < 0) continue;
@@ -3551,8 +3551,8 @@ static String overlays_json_for(const String &mod, const String &prog) {
     return out;
 }
 
-// GET /api/overlays?mod=ml1&prog=01 — righe overlay per quel
-// programma, già filtrate e in JSON pronto per il frontend.
+// GET /api/overlays?mod=ml1&prog=01 — righe overlay per quel — GET /api/overlays?mod=ml1&prog=01 — overlay rows for that
+// programma, già filtrate e in JSON pronto per il frontend. — program, already filtered and JSON-ready for the frontend.
 static void handle_overlays_get() {
     if (!server.hasArg("mod") || !server.hasArg("prog")) {
         send_err("missing mod/prog"); return;
@@ -3561,15 +3561,15 @@ static void handle_overlays_get() {
     send_json(200, json.c_str());
 }
 
-// GET /api/overlays/raw — l'intero file grezzo, per l'editor a tutto
-// testo nella pagina /overlays.
+// GET /api/overlays/raw — l'intero file grezzo, per l'editor a tutto — GET /api/overlays/raw — the whole raw file, for the full-text
+// testo nella pagina /overlays. — editor in the /overlays page.
 static void handle_overlays_raw_get() {
     server.sendHeader("Access-Control-Allow-Origin", "*");
     server.send(200, "text/plain", g_overlays_raw);
 }
 
-// POST /api/overlays — corpo: intero file di testo, sostituisce tutto
-// (stesso pattern "plain body" di handle_card_upload/handle_program_card_post).
+// POST /api/overlays — corpo: intero file di testo, sostituisce tutto — POST /api/overlays — body: whole text file, replaces everything
+// (stesso pattern "plain body" di handle_card_upload/handle_program_card_post). — (same "plain body" pattern of handle_card_upload/handle_program_card_post).
 static void handle_overlays_post() {
     String body = server.arg("plain");
     if (!overlays_save_raw(body)) { send_err("impossibile scrivere su SPIFFS"); return; }
@@ -3577,18 +3577,18 @@ static void handle_overlays_post() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   POSIZIONI TESTO OVERLAY (GRID_COL_X/GRID_ROW_Y/FREE_ROW_Y)
-   Prima erano solo costanti dentro CARDRENDER_JS: per cambiarle
-   bisognava editare il codice e riflashare. Ora sono un piccolo file
-   JSON su SPIFFS, modificabile dalla UI in /overlays — stesso pattern
-   "un file solo, riscritto per intero" già usato per overlays.txt.
-   Se il file non esiste ancora (prima volta), GET restituisce i
-   default hardcoded in CARDRENDER_JS lato client (nessun errore).
+   POSIZIONI TESTO OVERLAY (GRID_COL_X/GRID_ROW_Y/FREE_ROW_Y) — OVERLAY TEXT POSITIONS (GRID_COL_X/GRID_ROW_Y/FREE_ROW_Y)
+   Prima erano solo costanti dentro CARDRENDER_JS: per cambiarle — They used to be constants only inside CARDRENDER_JS: to change them
+   bisognava editare il codice e riflashare. Ora sono un piccolo file — you had to edit code and reflash. Now they are a small JSON file
+   JSON su SPIFFS, modificabile dalla UI in /overlays — stesso pattern — on SPIFFS, editable from the UI in /overlays — same pattern
+   "un file solo, riscritto per intero" già usato per overlays.txt. — "one single file, fully rewritten" already used for overlays.txt.
+   Se il file non esiste ancora (prima volta), GET restituisce i — If the file does not exist yet (first time), GET returns the
+   default hardcoded in CARDRENDER_JS lato client (nessun errore). — defaults hardcoded in the client-side CARDRENDER_JS (no error).
    ═══════════════════════════════════════════════════════════════════ */
 #define POSITIONS_FILE "/overlay_pos.json"
 #define POSITIONS_TMP  "/overlay_pos.tmp"
 
-static String g_positions_raw;   // "" = usa i default lato client
+static String g_positions_raw;   // "" = usa i default lato client — "" = use the client-side defaults
 
 static void positions_init() {
     if (!SPIFFS.exists(POSITIONS_FILE)) { g_positions_raw = ""; return; }
@@ -3613,16 +3613,16 @@ static bool positions_save_raw(const String &text) {
     return true;
 }
 
-// GET /api/card_positions — JSON grezzo così com'è su SPIFFS. Se non
-// è mai stato salvato nulla, risponde con un oggetto vuoto: il
-// frontend (cardrender.js) usa i propri default in quel caso.
+// GET /api/card_positions — JSON grezzo così com'è su SPIFFS. Se non — GET /api/card_positions — raw JSON as-is on SPIFFS. If never
+// è mai stato salvato nulla, risponde con un oggetto vuoto: il — anything was saved, it answers with an empty object: the
+// frontend (cardrender.js) usa i propri default in quel caso. — frontend (cardrender.js) uses its own defaults in that case.
 static void handle_positions_get() {
     server.sendHeader("Access-Control-Allow-Origin", "*");
     server.send(200, "application/json", g_positions_raw.length() ? g_positions_raw : "{}");
 }
 
-// POST /api/card_positions — corpo: JSON completo, sostituisce tutto
-// (stesso pattern "plain body" di handle_overlays_post).
+// POST /api/card_positions — corpo: JSON completo, sostituisce tutto — POST /api/card_positions — body: full JSON, replaces everything
+// (stesso pattern "plain body" di handle_overlays_post). — (same "plain body" pattern of handle_overlays_post).
 static void handle_positions_post() {
     String body = server.arg("plain");
     if (!positions_save_raw(body)) { send_err("impossibile scrivere su SPIFFS"); return; }
@@ -3637,12 +3637,12 @@ static void handle_card_download() {
         send_err("empty slot");
 return;
     }
-    // BUGFIX: 4096 byte non bastano per il caso peggiore (nome +
-    // prog_a/b + regs tutti al massimo ≈ 5,6 KB) — causava
-    // troncamento silenzioso del JSON scaricato (snprintf si
-    // autolimita, quindi non è un overflow, ma il file scaricato
-    // risultava JSON invalido/tagliato a metà). Stessa formula cap
-    // già usata in cardemu_persist_slot/cardemu_import_batch.
+    // BUGFIX: 4096 byte non bastano per il caso peggiore (nome + — BUGFIX: 4096 bytes are not enough for the worst case (name +
+    // prog_a/b + regs tutti al massimo ≈ 5,6 KB) — causava — prog_a/b + regs all at maximum ≈ 5.6 KB) — it caused
+    // troncamento silenzioso del JSON scaricato (snprintf si — silent truncation of the downloaded JSON (snprintf
+    // autolimita, quindi non è un overflow, ma il file scaricato — self-limits, so it's not an overflow, but the downloaded file
+    // risultava JSON invalido/tagliato a metà). Stessa formula cap — ended up invalid/cut in half). Same cap formula
+    // già usata in cardemu_persist_slot/cardemu_import_batch. — already used in cardemu_persist_slot/cardemu_import_batch.
     int cap = CARD_NAME_LEN + CARD_PROG_BYTES*4 + CARD_REGS_BYTES*2 + 128;
     char *json = (char*)malloc(cap);
     if (!json) { send_err("out of memory"); return; }
@@ -3653,15 +3653,15 @@ return;
     free(json);
 }
 
-// POST /api/card/file?slot=N — carica una scheda da un file di testo
-// (stesso formato di handle_card_download, per lo scambio con un PC:
-// scarichi un .txt da uno slot, lo passi ad un altro TI-59 Zombie, lo
-// ricarichi in un altro slot lì).
-// POST /api/card/load?slot=N — carica una scheda già salvata in CPU
-// (cardemu_load_to_cpu): il pulsante "R" del manager fa solo una GET di
-// lettura, che non basta a far comparire l'overlay. Qui invece si carica
-// davvero il programma + registri in memoria, come farebbe la scheda
-// fisica letta dal lettore.
+// POST /api/card/file?slot=N — carica una scheda da un file di testo — POST /api/card/file?slot=N — loads a card from a text file
+// (stesso formato di handle_card_download, per lo scambio con un PC: — (same format as handle_card_download, for exchange with a PC:
+// scarichi un .txt da uno slot, lo passi ad un altro TI-59 Zombie, lo — you download a .txt from a slot, pass it to another TI-59 Zombie,
+// ricarichi in un altro slot lì). — and reload it into another slot there).
+// POST /api/card/load?slot=N — carica una scheda già salvata in CPU — POST /api/card/load?slot=N — loads a card already saved into CPU
+// (cardemu_load_to_cpu): il pulsante "R" del manager fa solo una GET di — (cardemu_load_to_cpu): the "R" button of the manager only does a
+// lettura, che non basta a far comparire l'overlay. Qui invece si carica — read GET, which is not enough to make the overlay appear. Here instead
+// davvero il programma + registri in memoria, come farebbe la scheda — the program + registers are really loaded into memory, like the physical
+// fisica letta dal lettore. — card read by the reader would.
 static void handle_card_load() {
     if (!server.hasArg("slot")) { send_err("missing slot"); return; }
     int slot = server.arg("slot").toInt();
@@ -3680,10 +3680,10 @@ static void handle_card_upload() {
     String body = server.arg("plain");
     if (body.isEmpty()) { send_err("empty body"); return;
 }
-    // Oltre ad importarla nello slot, la scheda viene anche caricata in
-    // CPU (cardemu_load_to_cpu) così l'overlay per la scheda magnetica
-    // compare subito sull'IDE: senza, active_slot resterebbe -1 e
-    // /api/status non riporterebbe active_card_slot/name.
+    // Oltre ad importarla nello slot, la scheda viene anche caricata in — Besides importing it into the slot, the card is also loaded into
+    // CPU (cardemu_load_to_cpu) così l'overlay per la scheda magnetica — CPU (cardemu_load_to_cpu) so the magnetic card overlay
+    // compare subito sull'IDE: senza, active_slot resterebbe -1 e — appears right away on the IDE: without it, active_slot would stay -1 and
+    // /api/status non riporterebbe active_card_slot/name. — /api/status would not report active_card_slot/name.
     if (cardemu_import_text(g_card, body.c_str(), (uint8_t)slot)) {
         cardemu_load_to_cpu(g_card, g_cpu, (uint8_t)slot);
         send_ok();
@@ -3703,18 +3703,18 @@ return;
 }
 
 void handle_prog_get() {
-    // Elenco leggibile passo | codice esadecimale |
-//nome comando, al posto
-    // dei soli byte esadecimali.
-//Testo semplice (non HTML): questa
-    // risposta finisce nel .value di una <textarea>, quindi eventuali tag
-    // comparirebbero come testo letterale invece di essere interpretati.
+    // Elenco leggibile passo | codice esadecimale | — Readable list step | hexadecimal code |
+//nome comando, al posto — command name, instead of
+    // dei soli byte esadecimali. — the bare hexadecimal bytes.
+//Testo semplice (non HTML): questa — Plain text (not HTML): this
+    // risposta finisce nel .value di una <textarea>, quindi eventuali tag — response ends up in the .value of a <textarea>, so any tags
+    // comparirebbero come testo letterale invece di essere interpretati. — would appear as literal text instead of being interpreted.
 //
-    // NOTA: prima il ciclo andava fisso a 50 passi indipendentemente dalla
-    // lunghezza reale del programma (cpu->prog_len) — con un programma più
-    // corto stampava righe finte "000 | 00 | 0" oltre la fine, con uno più
-    // lungo tagliava il resto.
-//Corretto usando g_cpu->prog_len.
+    // NOTA: prima il ciclo andava fisso a 50 passi indipendentemente dalla — NOTE: previously the loop ran fixed to 50 steps regardless of the
+    // lunghezza reale del programma (cpu->prog_len) — con un programma più — real program length (cpu->prog_len) — with a shorter program
+    // corto stampava righe finte "000 | 00 | 0" oltre la fine, con uno più — it printed fake rows "000 | 00 | 0" past the end, with a longer one
+    // lungo tagliava il resto. — it cut off the rest.
+//Corretto usando g_cpu->prog_len. — Fixed by using g_cpu->prog_len.
     String output;
     output.reserve((size_t)g_cpu->prog_len * 20 + 64);
     output += " Passo | Hex | Comando\r\n";
@@ -3739,9 +3739,9 @@ static void handle_prog_post() {
     uint8_t prog_data[PROG_SIZE];
     int count = 0;
 if (body.indexOf('|') >= 0) {
-        // Formato leggibile "passo | hex | comando" (quello ora restituito
-        // da /api/prog GET): prendiamo solo la colonna centrale, riga per
-        // riga, ignorando intestazioni/commenti che iniziano per ';'.
+        // Formato leggibile "passo | hex | comando" (quello ora restituito — Readable "step | hex | command" format (the one now returned
+        // da /api/prog GET): prendiamo solo la colonna centrale, riga per — by the /api/prog GET): we take only the central column, line by
+        // riga, ignorando intestazioni/commenti che iniziano per ';'. — line, ignoring headers/comments that start with ';'.
 int start = 0;
         while (start < (int)body.length() && count < (int)sizeof(prog_data)) {
             int nl = body.indexOf('\n', start);
@@ -3762,8 +3762,8 @@ line.substring(p1 + 1, p2) : line.substring(p1 + 1);
             prog_data[count++] = (uint8_t)strtol(hexTok.c_str(), nullptr, 16);
 }
     } else {
-        // Formato originale: byte esadecimali grezzi separati da spazi
-        // (compatibilità con hex incollato a mano o generato altrove).
+        // Formato originale: byte esadecimali grezzi separati da spazi — Original format: raw hexadecimal bytes separated by spaces
+        // (compatibilità con hex incollato a mano o generato altrove). — (compatibility with hex pasted by hand or generated elsewhere).
 const char *p = body.c_str();
         while (*p && count < (int)sizeof(prog_data)) {
             while (*p == ' ' || *p == '\n' || *p == '\r') p++;
@@ -3791,7 +3791,7 @@ static void handle_options() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   NUOVI HANDLER WiFi
+   NUOVI HANDLER WiFi — NEW WIFI HANDLERS
    ═══════════════════════════════════════════════════════════════════ */
 static void handle_wifi_scan() {
     int n = WiFi.scanNetworks();
@@ -3881,7 +3881,7 @@ static void handle_wifi_connect() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   HANDLER DOWNLOAD FILE SPIFFS
+   HANDLER DOWNLOAD FILE SPIFFS — SPIFFS FILE DOWNLOAD HANDLERS
    ═══════════════════════════════════════════════════════════════════ */
 static void handle_download_print() {
     if (SPIFFS.exists("/print.txt")) {
@@ -3933,16 +3933,16 @@ if (!SPIFFS.exists(name)) { send_err("file not found"); return; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   HANDLER INFORMAZIONI SISTEMA
+   HANDLER INFORMAZIONI SISTEMA — SYSTEM INFORMATION HANDLERS
    ═══════════════════════════════════════════════════════════════════ */
 static void handle_sysinfo() {
-    // Conteggio slot popolati
+    // Conteggio slot popolati — Count of populated slots
     int filled = 0;
     for (int i = 0; i < CARD_SLOT_COUNT; i++) {
         if (g_card && g_card->slots[i].valid) filled++;
     }
 
-    // Conteggio file .prg su SPIFFS
+    // Conteggio file .prg su SPIFFS — Count of .prg files on SPIFFS
     int prg_count = 0;
     File root = SPIFFS.open("/");
     if (root) {
@@ -3954,7 +3954,7 @@ static void handle_sysinfo() {
         }
     }
 
-    // Informazioni SPIFFS
+    // Informazioni SPIFFS — SPIFFS information
     size_t spiffs_total = SPIFFS.totalBytes();
     size_t spiffs_used  = SPIFFS.usedBytes();
 
@@ -4003,7 +4003,7 @@ static void handle_sysinfo() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   FILE SYSTEM — lista, upload, delete
+   FILE SYSTEM — lista, upload, delete — FILE SYSTEM — list, upload, delete
    ═══════════════════════════════════════════════════════════════════ */
 static void handle_fs_list() {
     String json = "{\"files\":[";
@@ -4012,11 +4012,11 @@ static void handle_fs_list() {
         File f = root.openNextFile();
         bool first = true;
         while (f) {
-            // Normalizza con slash iniziale (f.name() su ESP32 spesso
-            // lo omette) — altrimenti il "path" che il frontend
-            // rimanda indietro per la cancellazione non combacia con
-            // quello che SPIFFS.exists()/SPIFFS.remove() si aspettano
-            // e la cancellazione fallisce silenziosamente.
+            // Normalizza con slash iniziale (f.name() su ESP32 spesso — Normalizes with a leading slash (f.name() on ESP32 often
+            // lo omette) — altrimenti il "path" che il frontend — omits it) — otherwise the "path" that the frontend
+            // rimanda indietro per la cancellazione non combacia con — sends back for deletion doesn't match
+            // quello che SPIFFS.exists()/SPIFFS.remove() si aspettano — what SPIFFS.exists()/SPIFFS.remove() expect
+            // e la cancellazione fallisce silenziosamente. — and deletion fails silently.
             String nm = String(f.name());
             if (!nm.startsWith("/")) nm = "/" + nm;
             if (!first) json += ",";
@@ -4030,19 +4030,19 @@ static void handle_fs_list() {
     send_json(200, json.c_str());
 }
 
-// Upload FILE in STREAMING (multipart/form-data). L'handler HTTP
-// predefinito bufferizza l'intero body in RAM (malloc(Content-Length)
-// + String(plainBuf)): con un SVG da 20 KB servivano ~40 KB di heap
-// liberi e l'upload falliva. Qui il file arriva a pezzi da
-// HTTP_UPLOAD_BUFLEN byte (1436) scritti direttamente su SPIFFS —
-// nessun buffer gigante, funziona con file di qualunque dimensione.
-// Il nome file arriva nel multipart (Content-Disposition filename),
-// non più nel query string. Pattern standard del WebServer ESP32:
-// on(uri, HTTP_POST, risposta, progresso).
+// Upload FILE in STREAMING (multipart/form-data). L'handler HTTP — FILE upload in STREAMING (multipart/form-data). The default HTTP
+// predefinito bufferizza l'intero body in RAM (malloc(Content-Length) — handler buffers the whole body in RAM (malloc(Content-Length)
+// + String(plainBuf)): con un SVG da 20 KB servivano ~40 KB di heap — + String(plainBuf)): with a 20 KB SVG you needed ~40 KB of free heap
+// liberi e l'upload falliva. Qui il file arriva a pezzi da — and the upload failed. Here the file arrives in pieces of
+// HTTP_UPLOAD_BUFLEN byte (1436) scritti direttamente su SPIFFS — — HTTP_UPLOAD_BUFLEN bytes (1436) written directly to SPIFFS —
+// nessun buffer gigante, funziona con file di qualunque dimensione. — no giant buffer, works with files of any size.
+// Il nome file arriva nel multipart (Content-Disposition filename), — The file name arrives in the multipart (Content-Disposition filename),
+// non più nel query string. Pattern standard del WebServer ESP32: — no longer in the query string. Standard ESP32 WebServer pattern:
+// on(uri, HTTP_POST, risposta, progresso). — on(uri, HTTP_POST, response, progress).
 static File fs_upload_file;
 static String fs_upload_name;
 
-static void handle_fs_upload() {   // risposta, chiamata a upload terminato
+static void handle_fs_upload() {   // risposta, chiamata a upload terminato — response, called when upload finished
     if (!fs_upload_name.length()) { send_err("missing file"); return; }
     if (!fs_upload_file) { fs_upload_name = ""; send_err("write error"); return; }
     fs_upload_file.close();
@@ -4059,7 +4059,7 @@ static void handle_fs_upload_progress() {
         if (slash >= 0) name = name.substring(slash + 1);
         if (name.length() == 0 ||
             (!name.endsWith(".svg") && !name.endsWith(".txt") && !name.endsWith(".json"))) {
-            fs_upload_name = "";   // estensione non consentita: ignora
+            fs_upload_name = "";   // estensione non consentita: ignora — disallowed extension: ignore
             return;
         }
         fs_upload_name = "/" + name;
@@ -4068,7 +4068,7 @@ static void handle_fs_upload_progress() {
     } else if (u.status == UPLOAD_FILE_WRITE) {
         if (fs_upload_file && u.currentSize) fs_upload_file.write(u.buf, u.currentSize);
     } else if (u.status == UPLOAD_FILE_END) {
-        // file lasciato aperto: lo chiude handle_fs_upload dopo la risposta
+        // file lasciato aperto: lo chiude handle_fs_upload dopo la risposta — file left open: handle_fs_upload closes it after the response
     } else if (u.status == UPLOAD_FILE_ABORTED) {
         if (fs_upload_file) fs_upload_file.close();
         if (fs_upload_name.length()) SPIFFS.remove(fs_upload_name);
@@ -4085,14 +4085,14 @@ static void handle_fs_delete() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   REGISTRAZIONE ROUTE
+   REGISTRAZIONE ROUTE — ROUTE REGISTRATION
    ═══════════════════════════════════════════════════════════════════ */
 
-// ─── RFID / NFC (schede magnetiche virtuali) ──────────────
-// POST /api/rfid/arm — arma la scrittura: la prossima scheda
-// inserita riceve il programma corrente. Arg opzionale "slot"
-// forza uno slot specifico (default: primo libero, come il
-// WRITE da tastiera).
+// ─── RFID / NFC (schede magnetiche virtuali) — RFID / NFC (virtual magnetic cards) ─────
+// POST /api/rfid/arm — arma la scrittura: la prossima scheda — POST /api/rfid/arm — arms the write: the next card
+// inserita riceve il programma corrente. Arg opzionale "slot" — inserted receives the current program. Optional arg "slot"
+// forza uno slot specifico (default: primo libero, come il — forces a specific slot (default: first free, like the
+// WRITE da tastiera). — WRITE from the keypad).
 static void handle_rfid_arm() {
     if (!rfid_reader_enabled()) { send_err("RFID disabled"); return; }
     int slot = server.hasArg("slot") ? server.arg("slot").toInt() : -1;
@@ -4101,8 +4101,8 @@ static void handle_rfid_arm() {
     send_ok();
 }
 
-// GET /api/rfid/read — sonda il lettore (tag appoggiato?):
-// riporta uid + slot letto dal tag, senza toccare la CPU.
+// GET /api/rfid/read — sonda il lettore (tag appoggiato?): — GET /api/rfid/read — probes the reader (tag placed?):
+// riporta uid + slot letto dal tag, senza toccare la CPU. — reports uid + slot read from the tag, without touching the CPU.
 static void handle_rfid_probe() {
     if (!rfid_reader_enabled()) { send_err("RFID disabled"); return; }
     uint8_t uid[7]; uint8_t len = 0; int slot = -1;
@@ -4116,16 +4116,16 @@ static void handle_rfid_probe() {
     send_json(200, json);
 }
 
-// GET /api/rfid/map — associazioni UID -> slot (fallback se il
-// tag non ha lo slot in pagina 4).
+// GET /api/rfid/map — associazioni UID -> slot (fallback se il — GET /api/rfid/map — UID -> slot mappings (fallback if the
+// tag non ha lo slot in pagina 4). — tag has no slot in page 4).
 static void handle_rfid_map_get() {
     char json[2048];
     rfid_map_list(json, sizeof(json));
     send_json(200, json);
 }
 
-// POST /api/rfid/map?uid=04A3B2C1D5E6&slot=N — associa/aggiorna
-// (il client può passare l'uid letto con /api/rfid/read).
+// POST /api/rfid/map?uid=04A3B2C1D5E6&slot=N — associa/aggiorna — POST /api/rfid/map?uid=04A3B2C1D5E6&slot=N — associates/updates
+// (il client può passare l'uid letto con /api/rfid/read). — (the client can pass the uid read with /api/rfid/read).
 static void handle_rfid_map_post() {
     if (!server.hasArg("uid") || !server.hasArg("slot")) { send_err("missing uid/slot"); return; }
     String u = server.arg("uid");
@@ -4148,9 +4148,9 @@ static void handle_rfid_map_post() {
 }
 
 static void handle_fs_format() {
-    // Formattazione SPIFFS on-demand. Non farla mai automaticamente nel
-    // boot: erase dell'intera partizione = 10-20s senza servire la rete;
-    // il browser può andare in timeout, è normale — poi si ricarica.
+    // Formattazione SPIFFS on-demand. Non farla mai automaticamente nel — On-demand SPIFFS formatting. Never do it automatically at
+    // boot: erase dell'intera partizione = 10-20s senza servire la rete; — boot: erasing the whole partition = 10-20s without serving the network;
+    // il browser può andare in timeout, è normale — poi si ricarica. — the browser may time out, that's normal — then you reload.
     Serial.println("[FS] Formattazione SPIFFS in corso (10-20s)...");
     bool ok = SPIFFS.format();
     if (ok) ok = SPIFFS.begin(false);
@@ -4194,9 +4194,9 @@ server.on("/api/card/file", HTTP_GET,    handle_card_download);
     server.on("/api/rfid/map",  HTTP_POST, handle_rfid_map_post);
     server.on("/i18n.js",       HTTP_GET,    handle_i18n_js);
     server.on("/cardrender.js", HTTP_GET,    handle_cardrender_js);
-    // Template SVG universali (linee divisorie), condivisi da tutti i
-    // moduli libreria — non più legati a ml1. free = righe libere
-    // stile ML-01, grid = griglia A-E stile ML-02/03/04.
+    // Template SVG universali (linee divisorie), condivisi da tutti i — Universal SVG templates (divider lines), shared by all the
+    // moduli libreria — non più legati a ml1. free = righe libere — library modules — no longer tied to ml1. free = free rows
+    // stile ML-01, grid = griglia A-E stile ML-02/03/04. — style ML-01, grid = A-E grid style ML-02/03/04.
     server.on("/card_free.svg", HTTP_GET, [](){
         File f = SPIFFS.open("/card_free.svg", FILE_READ);
         if (!f) { send_err("not found"); return; }
@@ -4211,14 +4211,14 @@ server.on("/api/card/file", HTTP_GET,    handle_card_download);
         server.sendHeader("Cache-Control","no-store");
         server.send(200, "image/svg+xml", svg);
     });
-    // Template SVG dedicato alle schede magnetiche (mod="card" nel
-    // formato overlay) — la base per il nome della scheda + eventuali
-    // righe overlay. Separato da quelli delle ROM libreria sopra, così
-    // un domani carichi un design diverso per le une senza toccare le
-    // altre. Fino a quando questi due file non vengono caricati, il
-    // fetch dà semplicemente 404 (gestito lato client in
-    // checkSvgTemplates()) e lo sfondo resta vuoto ma il testo overlay
-    // si vede comunque.
+    // Template SVG dedicato alle schede magnetiche (mod="card" nel — SVG template dedicated to magnetic cards (mod="card" in the
+    // formato overlay) — la base per il nome della scheda + eventuali — overlay format) — the base for the card name + any
+    // righe overlay. Separato da quelli delle ROM libreria sopra, così — overlay rows. Separate from the library ROM ones above, so
+    // un domani carichi un design diverso per le une senza toccare le — someday you can load a different design for the former without touching the
+    // altre. Fino a quando questi due file non vengono caricati, il — latter. Until these two files are uploaded, the
+    // fetch dà semplicemente 404 (gestito lato client in — fetch simply gives 404 (handled client-side in
+    // checkSvgTemplates()) e lo sfondo resta vuoto ma il testo overlay — checkSvgTemplates()) and the background stays empty but the overlay text
+    // si vede comunque. — is still visible.
     server.on("/magcard_free.svg", HTTP_GET, [](){
         File f = SPIFFS.open("/magcard_free.svg", FILE_READ);
         if (!f) { send_err("not found"); return; }
@@ -4260,11 +4260,11 @@ server.on("/api/progfile",  HTTP_GET, handle_download_prog);
     server.onNotFound([](){
         if (server.method() == HTTP_OPTIONS) { handle_options(); return; }
         if (captive_mode) { server.send_P(200, "text/html", WEB_SETUP); return; }
-        // Template SVG generici: serve QUALSIASI .svg presente su SPIFFS
-        // (top.svg, base.svg, o qualunque file scelto come strato dal
-        // pannello posizioni), così l'anteprima disegna davvero gli strati
-        // configurati invece di restituire 404. Limite all'estensione .svg
-        // per non esporre binari/json (state.bin, schede...).
+        // Template SVG generici: serve QUALSIASI .svg presente su SPIFFS — Generic SVG templates: serves ANY .svg present on SPIFFS
+        // (top.svg, base.svg, o qualunque file scelto come strato dal — (top.svg, base.svg, or any file chosen as the layer from the
+        // pannello posizioni), così l'anteprima disegna davvero gli strati — positions panel), so the preview really draws the configured layers
+        // configurati invece di restituire 404. Limite all'estensione .svg — instead of returning 404. Limit to the .svg extension
+        // per non esporre binari/json (state.bin, schede...). — so as not to expose binaries/json (state.bin, cards...).
         String uri = server.uri();
         if (uri.endsWith(".svg")) {
             File f = SPIFFS.open(uri, FILE_READ);
@@ -4280,28 +4280,28 @@ server.on("/api/progfile",  HTTP_GET, handle_download_prog);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   LOOP PRINCIPALE WiFi (task FreeRTOS)
+   LOOP PRINCIPALE WiFi (task FreeRTOS) — MAIN WiFi LOOP (FreeRTOS task)
    ═══════════════════════════════════════════════════════════════════ */
-// Controllo periodico non bloccante (rate-limited via millis()) dello
-// stato WiFi, con intervento manuale se la riconnessione automatica
-// del driver non basta.
-//Va chiamata ad ogni giro del loop principale:
-// esce subito se non è ancora passato WIFI_STATUS_POLL_MS.
+// Controllo periodico non bloccante (rate-limited via millis()) dello — Non-blocking periodic check (rate-limited via millis()) of the
+// stato WiFi, con intervento manuale se la riconnessione automatica — WiFi status, with manual intervention if the driver's automatic reconnection
+// del driver non basta. — is not enough.
+//Va chiamata ad ogni giro del loop principale: — Must be called on every main loop iteration:
+// esce subito se non è ancora passato WIFI_STATUS_POLL_MS. — it returns immediately if WIFI_STATUS_POLL_MS hasn't passed yet.
 static void wifi_watchdog_tick() {
     unsigned long now = millis();
     if (now - wifi_last_poll_ms < WIFI_STATUS_POLL_MS) return;
 wifi_last_poll_ms = now;
 
     if (!captive_mode) {
-        // Modalità normale STA/IDE: dovremmo essere connessi.
+        // Modalità normale STA/IDE: dovremmo essere connessi. — Normal STA/IDE mode: we should be connected.
 if (WiFi.status() == WL_CONNECTED) {
             wifi_disconnected_since_ms = 0;
 digitalWrite(PIN_LED_STATUS, HIGH);
             return;
         }
 
-        // Persa la connessione: segnala subito sul LED, anche se il
-        // riconnect automatico del driver potrebbe farcela da solo.
+        // Persa la connessione: segnala subito sul LED, anche se il — Connection lost: signal it right away on the LED, even if the
+        // riconnect automatico del driver potrebbe farcela da solo. — driver's automatic reconnect might handle it alone.
 digitalWrite(PIN_LED_STATUS, LOW);
         if (wifi_disconnected_since_ms == 0) wifi_disconnected_since_ms = now;
 
@@ -4322,8 +4322,8 @@ wifi_start_ap();
             }
         }
     } else {
-        // Modalità AP di setup: ogni tanto ricontrolla se una rete
-        // nota è tornata disponibile, per tornare in modalità IDE.
+        // Modalità AP di setup: ogni tanto ricontrolla se una rete — Setup AP mode: every now and then re-checks if a known network
+        // nota è tornata disponibile, per tornare in modalità IDE. — is available again, to return to IDE mode.
 bool cooldown_ok = (now - wifi_last_retry_ms) > WIFI_RETRY_COOLDOWN_MS;
         if (wifi_cred_count > 0 && cooldown_ok) {
             wifi_last_retry_ms = now;
@@ -4335,8 +4335,8 @@ dnsServer.stop();
                 wifi_disconnected_since_ms = 0;
                 digitalWrite(PIN_LED_STATUS, HIGH);
             } else {
-                // wifi_try_stored_creds ha messo la radio in WIFI_STA
-                // per la scansione: ripristina l'AP di setup.
+                // wifi_try_stored_creds ha messo la radio in WIFI_STA — wifi_try_stored_creds put the radio in WIFI_STA
+                // per la scansione: ripristina l'AP di setup. — for the scan: restore the setup AP.
 wifi_start_ap();
             }
         }
@@ -4344,20 +4344,20 @@ wifi_start_ap();
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Persistenza automatica memoria LRN (programma utente) attraverso
-// spegnimento/riavvio. Sull'hardware originale la RAM e' volatile e
-// il programma si perde spegnendo la calcolatrice (eccetto il raro
-// TI-58C con RAM a basso consumo alimentata costantemente); qui,
-// potendo contare su SPIFFS, la manteniamo intatta come richiesto:
-// viene ripristinata all'avvio e salvata automaticamente ogni volta
-// che risulta "dirty" (modificata dall'ultimo salvataggio), invece
-// di affidarsi a un evento di spegnimento pulito che su un device
-// alimentato a batteria/interruttore fisico potrebbe non arrivare
-// mai in tempo — il salvataggio periodico e' l'unica strategia
-// affidabile in questo scenario.
+// Persistenza automatica memoria LRN (programma utente) attraverso — Automatic persistence of the LRN memory (user program) across
+// spegnimento/riavvio. Sull'hardware originale la RAM e' volatile e — power-off/reboot. On the original hardware the RAM is volatile and
+// il programma si perde spegnendo la calcolatrice (eccetto il raro — the program is lost when the calculator is switched off (except the rare
+// TI-58C con RAM a basso consumo alimentata costantemente); qui, — TI-58C with low-power RAM constantly powered); here,
+// potendo contare su SPIFFS, la manteniamo intatta come richiesto: — being able to rely on SPIFFS, we keep it intact as required:
+// viene ripristinata all'avvio e salvata automaticamente ogni volta — it is restored at startup and saved automatically every time
+// che risulta "dirty" (modificata dall'ultimo salvataggio), invece — it results "dirty" (modified since the last save), instead
+// di affidarsi a un evento di spegnimento pulito che su un device — of relying on a clean shutdown event that on a battery-powered
+// alimentato a batteria/interruttore fisico potrebbe non arrivare — device with a physical switch might never arrive
+// mai in tempo — il salvataggio periodico e' l'unica strategia — in time — the periodic save is the only reliable
+// affidabile in questo scenario. — strategy in this scenario.
 // ═══════════════════════════════════════════════════════════════
 #define LRN_AUTOSAVE_PATH "/lrn_autosave.prg"
-#define LRN_AUTOSAVE_INTERVAL_MS 3000   // non scrivere in flash a ogni tasto
+#define LRN_AUTOSAVE_INTERVAL_MS 3000   // non scrivere in flash a ogni tasto — don't write to flash on every keypress
 
 static void lrn_autosave_restore(TMS1500_State *cpu) {
     File f = SPIFFS.open(LRN_AUTOSAVE_PATH, FILE_READ);
@@ -4370,7 +4370,7 @@ static void lrn_autosave_restore(TMS1500_State *cpu) {
     f.close();
     if (n == 0) return;
     tms1500_load_prog(cpu, buf, (uint16_t)n);
-    tms1500_mark_prog_saved();   // appena caricato: non e' "dirty"
+    tms1500_mark_prog_saved();   // appena caricato: non e' "dirty" — just loaded: not "dirty"
     Serial.printf("[LRN] Ripristinati %u byte di programma dall'autosave.\n", (unsigned)n);
 }
 
@@ -4395,9 +4395,9 @@ void wifi_server_loop(TMS1500_State *cpu, CardEmuState *card, KeyboardState *kbd
     g_kbd  = kbd;
 	tms1500_bind_cpu(g_cpu);
 
-    lrn_autosave_restore(g_cpu);   // ripristina il programma prima di tutto il resto
-    overlays_init();               // carica /overlays.txt in RAM (cache) — v. sopra
-    positions_init();              // carica /overlay_pos.json in RAM (cache) — v. sopra
+    lrn_autosave_restore(g_cpu);   // ripristina il programma prima di tutto il resto — restores the program before everything else
+    overlays_init();               // carica /overlays.txt in RAM (cache) — v. sopra — loads /overlays.txt into RAM (cache) — see above
+    positions_init();              // carica /overlay_pos.json in RAM (cache) — v. sopra — loads /overlay_pos.json into RAM (cache) — see above
 
     settings_load_and_apply();
 

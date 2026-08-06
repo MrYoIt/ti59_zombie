@@ -13,13 +13,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * In caso contrario, vedi <https://www.gnu.org/licenses/>. — If not, see <https://www.gnu.org/licenses/>.
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include "tms1500.h"
 
-// TI-59 ROM firmware dump (from ROM_DUMP_59.pdf)
-// Total words: 6144
+// Dump del firmware ROM TI-59 (da ROM_DUMP_59.pdf) — TI-59 ROM firmware dump (from ROM_DUMP_59.pdf)
+// Parole totali: 6144 — Total words: 6144
 static const uint16_t ti59_rom[ROM_SIZE] = {
     0x0A01, 0x0A0A, 0x00B9, 0x03DC, 0x01D8, 0x0A48, 0x1002, 0x0121,
     0x0A0F, 0x0101, 0x032C, 0x1809, 0x0A02, 0x01D7, 0x1ECE, 0x0A77,
@@ -792,5 +792,5 @@ static const uint16_t ti59_rom[ROM_SIZE] = {
 };
 
 void rom_init() {
-    // ROM is linked directly via ti59_rom array
+    // La ROM è linkata direttamente tramite l'array ti59_rom — ROM is linked directly via ti59_rom array
 }

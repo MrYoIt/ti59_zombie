@@ -13,9 +13,9 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * In caso contrario, vedi <https://www.gnu.org/licenses/>. — If not, see <https://www.gnu.org/licenses/>.
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #pragma once
-/* wifilink_regs.h — Endpoint registri CPU e pannello CROM */
+/* wifilink_regs.h — Endpoint registri CPU e pannello CROM — CPU register endpoints and CROM panel */
 void register_regs_routes(void);

@@ -1,5 +1,5 @@
 /*
- * TI-59 Zombie — emulatore TI-59 su ESP32-S3 (TMS1500)
+ * TI-59 Zombie — emulatore TI-59 su ESP32-S3 (TMS1500) — TI-59 emulator on the ESP32-S3 (TMS1500)
  * Copyright (C) 2026 Maurizio Petruccioli (MrYo)
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,23 +19,23 @@
 #include "library_module.h"
 #include <string.h>
 
-// Dichiarato in rom_ml1.cpp e rom_XX.cpp.
-extern const LibraryModule ML1_MODULE;   // -1- Master Library
-extern const LibraryModule ST_MODULE;   // -2- Applied Statistics
-extern const LibraryModule RE_MODULE;   // -3- Real Estate
-extern const LibraryModule SV_MODULE;   // -4- Surveying
-extern const LibraryModule NA_MODULE;   // -5- Marine Navigation
-extern const LibraryModule AV_MODULE;   // -6- Aviation
-extern const LibraryModule LL_MODULE;   // -7- Leisure Library
-extern const LibraryModule SA_MODULE;   // -8- Securities Analysis
-extern const LibraryModule EE_MODULE;   // -9- Electrical Engineering
-extern const LibraryModule FM_MODULE;   // -10- Farming
-extern const LibraryModule MU_MODULE;   // -11- Music
-extern const LibraryModule PH_MODULE;   // -12- Photography
-extern const LibraryModule RP_MODULE;   // -13- RPN
-extern const LibraryModule SE_MODULE;   // -14- Structural Engineering
+// Dichiarato in rom_ml1.cpp e rom_XX.cpp. — Declared in rom_ml1.cpp and rom_XX.cpp.
+extern const LibraryModule ML1_MODULE;   // Modulo -1- Master Library — Module -1- Master Library
+extern const LibraryModule ST_MODULE;   // Modulo -2- Applied Statistics — Module -2- Applied Statistics
+extern const LibraryModule RE_MODULE;   // Modulo -3- Real Estate — Module -3- Real Estate
+extern const LibraryModule SV_MODULE;   // Modulo -4- Surveying — Module -4- Surveying
+extern const LibraryModule NA_MODULE;   // Modulo -5- Marine Navigation — Module -5- Marine Navigation
+extern const LibraryModule AV_MODULE;   // Modulo -6- Aviation — Module -6- Aviation
+extern const LibraryModule LL_MODULE;   // Modulo -7- Leisure Library — Module -7- Leisure Library
+extern const LibraryModule SA_MODULE;   // Modulo -8- Securities Analysis — Module -8- Securities Analysis
+extern const LibraryModule EE_MODULE;   // Modulo -9- Electrical Engineering — Module -9- Electrical Engineering
+extern const LibraryModule FM_MODULE;   // Modulo -10- Farming — Module -10- Farming
+extern const LibraryModule MU_MODULE;   // Modulo -11- Music — Module -11- Music
+extern const LibraryModule PH_MODULE;   // Modulo -12- Photography — Module -12- Photography
+extern const LibraryModule RP_MODULE;   // Modulo -13- RPN — Module -13- RPN
+extern const LibraryModule SE_MODULE;   // Modulo -14- Structural Engineering — Module -14- Structural Engineering
 
-// ─── Registro moduli compilati (ordinati per numero) ──────
+// ─── Registro moduli compilati (ordinati per numero) — Registry of compiled modules (sorted by number) ──────
 static const LibraryModule* const LIBRARY_REGISTRY[] = {
     &ML1_MODULE,
     &ST_MODULE,
@@ -72,7 +72,7 @@ const LibraryModule* library_module_find(const char *id) {
     return nullptr;
 }
 
-// ─── Modulo attivo ──────────────────────────────────────────
+// ─── Modulo attivo — Active module ──────────────────────────────────────────
 static const LibraryModule *g_active_module = nullptr;
 
 __attribute__((weak)) void library_on_module_changed(const char *id) { (void)id; }
@@ -80,7 +80,7 @@ __attribute__((weak)) void library_on_module_changed(const char *id) { (void)id;
 bool library_set_active(const char *id) {
     if (!id || id[0] == '\0') {
         if (g_active_module != nullptr) { g_active_module = nullptr; library_on_module_changed(""); }
-        return true;   // "nessun modulo" è sempre una scelta valida
+        return true;   // "nessun modulo" è sempre una scelta valida — "no module" is always a valid choice
     }
     const LibraryModule *m = library_module_find(id);
     if (!m) return false;
@@ -92,7 +92,7 @@ const LibraryModule* library_get_active(void) {
     return g_active_module;
 }
 
-// ─── Richiamo programma: cerca indirizzo/lunghezza/titolo ──
+// ─── Richiamo programma: cerca indirizzo/lunghezza/titolo — Program call: looks up address/length/title ──
 bool library_find_program(uint8_t page, uint16_t *out_addr,
                            uint16_t *out_len, const char **out_title) {
     if (!g_active_module) return false;

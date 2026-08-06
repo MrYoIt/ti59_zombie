@@ -1,0 +1,160 @@
+===============================================================
+ TI-59 ZOMBIE — GUIDA ESPLICATIVA / EXPLANATORY GUIDE
+ Emulatore TI-59 su ESP32-S3 — TI-59 emulator on ESP32-S3
+===============================================================
+
+Tutte le sezioni sono bilingue (italiano — inglese).
+All sections are bilingual (Italian — English).
+
+---------------------------------------------------------------
+1) COSA SERVE — WHAT YOU NEED
+---------------------------------------------------------------
+Italiano:
+  - Una scheda ESP32-S3-DevKitC-1 N8R8 (o simile).
+  - Display HT16K33 16x8 (12 digit) su I2C.
+  - Tastiera a matrice 9x5 (facoltativa: in mancanza si usa la
+    tastiera virtuale del web IDE).
+  - Arduino IDE 1.8.x o 2.x con core esp32 di Espressif.
+  - Librerie: MFRC522 (solo lettore NFC), NimBLE-Arduino (solo
+    stampante BLE).
+English:
+  - An ESP32-S3-DevKitC-1 N8R8 board (or similar).
+  - HT16K33 16x8 display (12 digits) on I2C.
+  - 9x5 keyboard matrix (optional: without it you use the web
+    IDE virtual keyboard).
+  - Arduino IDE 1.8.x or 2.x with the Espressif esp32 core.
+  - Libraries: MFRC522 (NFC reader only), NimBLE-Arduino (BLE
+    printer only).
+
+---------------------------------------------------------------
+2) PRIMO AVVIO — FIRST BOOT
+---------------------------------------------------------------
+Italiano:
+  - Flasha il firmware (ti59_zombie.ino, scheda ESP32S3 Dev
+    Module).
+  - Carica la cartella "data/" sul file system SPIFFS (il device
+    ne ha bisogno per overlay, template SVG e posizioni).
+  - Alla prima accensione la scheda apre un captive portal WiFi
+    con pagina /setup: scegli la tua rete e inserisci la
+    password (salvata in NVS). Poi si riavvia sulla rete.
+English:
+  - Flash the firmware (ti59_zombie.ino, ESP32S3 Dev Module
+    board).
+  - Upload the "data/" folder to the SPIFFS filesystem (the
+    device needs it for overlays, SVG templates and positions).
+  - On first boot the board opens a WiFi captive portal with the
+    /setup page: pick your network and enter the password (stored
+    in NVS). Then it reboots onto your network.
+
+---------------------------------------------------------------
+3) USO DEL WEB — USING THE WEB UI
+---------------------------------------------------------------
+Italiano:
+  - Apri nel browser l'indirizzo IP della scheda (es. dalla
+    console seriale) o usa i file di lancio inclusi
+    (launch_ti59.ps1 / .sh, Avvia TI-59 Zombie.bat).
+  - "/"     : calcolatrice virtuale completa (IDE web): tasti,
+              programmi, registri, overlay.
+  - "/manage": schede magnetiche, programma corrente, moduli
+              libreria, stampante/file, file system SPIFFS,
+              informazioni di sistema, scelta lingua.
+  - "/overlays": editor delle etichette overlay (file unico
+              overlays.txt) con anteprima live, anteprima
+              schede magnetiche e pannello posizioni del testo
+              (per adattare i template SVG).
+  - "/wolf" : pannello regolatori motore (solo se su SPIFFS esiste
+              /god_mode.txt).
+English:
+  - Open the board IP address in your browser (e.g. from the
+    serial console) or use the included launcher files
+    (launch_ti59.ps1 / .sh, Avvia TI-59 Zombie.bat).
+  - "/"     : full virtual calculator (web IDE): keys, programs,
+              registers, overlays.
+  - "/manage": magnetic cards, current program, library modules,
+              printer/files, SPIFFS filesystem, system info,
+              language selector.
+  - "/overlays": overlay label editor (single overlays.txt file)
+              with live preview, magnetic card preview and a text
+              position panel (to fit the SVG templates).
+  - "/wolf" : engine tuning panel (only if /god_mode.txt exists
+              on SPIFFS).
+
+---------------------------------------------------------------
+4) MODULI LIBRERIA — LIBRARY MODULES
+---------------------------------------------------------------
+Italiano:
+  14 moduli "Solid State Software" con numerazione ufficiale
+  (-1- Master Library ... -14- Structural Engineering). Si
+  selezionano da /manage o con "2nd Pgm" nn. Il modulo -15-
+  (Math Utilities) non è ancora implementato.
+English:
+  14 "Solid State Software" modules with official numbering
+  (-1- Master Library ... -14- Structural Engineering). Select
+  them from /manage or with "2nd Pgm" nn. Module -15- (Math
+  Utilities) is not implemented yet.
+
+---------------------------------------------------------------
+5) SCHEDE MAGNETICHE / NFC — MAGNETIC CARDS / NFC
+---------------------------------------------------------------
+Italiano:
+  - Senza lettore NFC: le schede sono file JSON in SPIFFS,
+    gestite da /manage (WRITE/READ, upload/download, nome).
+    Il microswitch card-sense (GPIO15) simula l'inserimento.
+  - Con lettore MFRC522 + tag NTAG213: il flusso riproduce quello
+    originale — READ all'inserzione, WRITE con tasto WRITE o
+    /api/rfid/arm, espulsione con motore su GPIO42. La mappa
+    UID->slot sta in /rfid_map.json.
+English:
+  - Without an NFC reader: cards are JSON files in SPIFFS,
+    managed from /manage (WRITE/READ, upload/download, name).
+    The card-sense microswitch (GPIO15) simulates insertion.
+  - With an MFRC522 reader + NTAG213 tags: the flow matches the
+    original — READ on insertion, WRITE via the WRITE key or
+    /api/rfid/arm, ejection with the motor on GPIO42. The
+    UID->slot map lives in /rfid_map.json.
+
+---------------------------------------------------------------
+6) STAMPANTE — PRINTER
+---------------------------------------------------------------
+Italiano:
+  La stampante PC-100A è emulata a livello logico (buffer 20
+  caratteri, ops 00-08). Un backend BLE (NimBLE) opzionale invia
+  le righe a una stampante termica. Controlla gli UUID reali
+  della tua stampante (nRF Connect) prima dell'uso: di default si
+  assume la convenzione NUS.
+English:
+  The PC-100A printer is emulated at the logic level (20-char
+  buffer, ops 00-08). An optional BLE backend (NimBLE) sends the
+  lines to a thermal printer. Check your printer's real UUIDs
+  (nRF Connect) before use: the NUS convention is assumed by
+  default.
+
+---------------------------------------------------------------
+7) PROBLEMI COMUNI — COMMON ISSUES
+---------------------------------------------------------------
+Italiano:
+  - WDT reset in loop al boot: pin non esposti (22-34) usati come
+    GPIO sulla DevKitC-1 N8R8. Usa solo pin 0-21 e 35-48.
+  - Connessione USB persa: GPIO19/20 (USB D-/D+) usati come GPIO.
+  - Le posizioni overlay "tornano a zero": il device può perdere
+    una POST /api/card_positions (WiFi instabile); il salvataggio
+    ora ritenta fino a 3 volte, ma il file resta su SPIFFS.
+English:
+  - WDT reset loop at boot: non-exposed pins (22-34) used as GPIO
+    on the DevKitC-1 N8R8. Use only pins 0-21 and 35-48.
+  - Lost USB connection: GPIO19/20 (USB D-/D+) used as GPIO.
+  - Overlay positions "back to zero": the device may lose a POST
+    /api/card_positions (unstable WiFi); saving now retries up to
+    3 times, but the file stays on SPIFFS.
+
+---------------------------------------------------------------
+8) SICUREZZA — SECURITY
+---------------------------------------------------------------
+Italiano:
+  - Non inserire credenziali personali nel sorgente. I default in
+    src/config.h vanno cambiati/rimossi prima di pubblicare il
+    codice.
+English:
+  - Do not put personal credentials in the source. The defaults
+    in src/config.h must be changed/removed before publishing the
+    code.

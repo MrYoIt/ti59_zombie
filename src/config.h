@@ -157,8 +157,8 @@
 
 // ─── WiFi — WiFi ───────────────────────────────────────────
 // Modificare con le proprie credenziali o usare WiFiManager — Edit with your own credentials or use WiFiManager
-#define WIFI_SSID     "REPLACE_ME"
-#define WIFI_PASS     "REPLACE_ME"
+#define WIFI_SSID     "REPLACE_ME"   // inserire la propria SSID — set your own SSID
+#define WIFI_PASS     "REPLACE_ME"   // inserire la propria password — set your own password
 #define WIFI_PORT     80
 
 // ─── Card emulation — card emulation ───────────────────────

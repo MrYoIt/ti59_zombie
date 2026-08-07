@@ -156,9 +156,12 @@
 // valore fisso a compile-time non sarebbe modificabile dall'utente. — fixed compile-time value could not be changed by the user.
 
 // ─── WiFi — WiFi ───────────────────────────────────────────
-// Modificare con le proprie credenziali o usare WiFiManager — Edit with your own credentials or use WiFiManager
-#define WIFI_SSID     "REPLACE_ME"   // inserire la propria SSID — set your own SSID
-#define WIFI_PASS     "REPLACE_ME"   // inserire la propria password — set your own password
+// Le credenziali NON vanno più hardcoded qui: vivono nel file
+// /wifi.json su SPIFFS (vedi wifilink.cpp), scaricabile/modificabile/
+// ricaricabile dal portale /setup (api /api/wifi/file).
+// Credentials are no longer hardcoded here: they live in the /wifi.json
+// file on SPIFFS (see wifilink.cpp), downloadable/editable/reloadable
+// from the /setup portal (api /api/wifi/file).
 #define WIFI_PORT     80
 
 // ─── Card emulation — card emulation ───────────────────────

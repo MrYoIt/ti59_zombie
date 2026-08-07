@@ -95,11 +95,11 @@ Non ancora implementato — Not yet implemented: **-15- Math Utilities**.
 4. Flash del firmware. — Flash the firmware.
 5. Carica la cartella `data/` sul file system SPIFFS (strumento "ESP32 Sketch Data Upload" o `esptool` sulla partizione SPIFFS). — Upload the `data/` folder to the SPIFFS filesystem ("ESP32 Sketch Data Upload" tool or `esptool` on the SPIFFS partition).
 
-Al primo avvio la scheda apre un **captive portal WiFi** (pagina `/setup`) per inserire le credenziali di rete, salvate in NVS. — On first boot the board opens a **WiFi captive portal** (page `/setup`) to enter network credentials, stored in NVS.
+Al primo avvio la scheda apre un **captive portal WiFi** (pagina `/setup`) per inserire le credenziali di rete, salvate nel file `/wifi.json` su SPIFFS (caricabile con la cartella `data/`). — On first boot the board opens a **WiFi captive portal** (page `/setup`) to enter network credentials, stored in the `/wifi.json` file on SPIFFS (flashable with the `data/` folder).
 
 ## Sicurezza — Security
 
-- Le credenziali WiFi sono salvate in **NVS** (Preferences), non nel sorgente. Rimuovere/segnare i default hardcoded in `src/config.h` se si ricompila per uso personale. — WiFi credentials are stored in **NVS** (Preferences), not in the source. Remove/redact the hardcoded defaults in `src/config.h` if you rebuild for personal use.
+- Le credenziali WiFi vivono nel file **`/wifi.json`** su SPIFFS (niente hardcoded, niente NVS), scaricabile/modificabile/ricaricabile dal portale `/setup` (`GET`/`POST /api/wifi/file`). Nota: il file contiene le password in chiaro — appartiene al proprietario del device. — WiFi credentials live in the **`/wifi.json`** file on SPIFFS (no hardcoding, no NVS), downloadable/editable/reloadable from the `/setup` portal (`GET`/`POST /api/wifi/file`). Note: the file contains plaintext passwords — it belongs to the device owner.
 - Il pannello `/wolf` (god mode) si attiva solo se su SPIFFS esiste `/god_mode.txt`. — The `/wolf` (god mode) panel only activates if `/god_mode.txt` exists on SPIFFS.
 
 ## Licenza — License

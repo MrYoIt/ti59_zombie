@@ -1516,7 +1516,7 @@ static uint16_t find_label(TMS1500_State *cpu, uint8_t label_kc) {
  * verso zero (senza mai superarlo, comportamento documentato della TI-59 — toward zero (without ever exceeding it, documented TI-59 behavior
  * reale — un contatore negativo va verso 0, non verso -N). Se il risultato — real — a negative counter goes toward 0, not toward -N). If the result
  * non è zero, salta a target_pc (il loop continua); se è zero, non salta — is not zero, jumps to target_pc (the loop continues); if it is zero, it does not jump
- * (l'esecuzione prosegue con l'istruzione successiva, il loop finisce). */ — (execution continues with the next instruction, the loop ends). */
+ * (l'esecuzione prosegue con l'istruzione successiva, il loop finisce). — (execution continues with the next instruction, the loop ends). */
 static void dsz_do(TMS1500_State *cpu, int reg, uint16_t target_pc) {
     reg %= 100;
     BCD_Reg *bank = active_ram_bank(cpu);
@@ -1534,7 +1534,7 @@ static void dsz_do(TMS1500_State *cpu, int reg, uint16_t target_pc) {
          * programma designato (es. 189 per ML-01), non l'indirizzo — designated program (e.g. 189 for ML-01), not the absolute
          * assoluto nella ROM — wrappare qui perdeva l'offset — address in the ROM — wrapping here lost the
          * lib_scope_addr e faceva atterrare il salto fuori dal — lib_scope_addr offset and made the jump land outside the
-         * programma (spesso nell'area prima del suo inizio). */ — program (often in the area before its start). */
+         * programma (spesso nell'area prima del suo inizio). — program (often in the area before its start). */
         cpu->prog_pc = target_pc;
     }
     /* v == 0: nessun salto, si prosegue in sequenza — v == 0: no jump, execution continues in sequence */
@@ -1555,7 +1555,7 @@ static uint8_t bcd_to_int_reg(const BCD_Reg *r) {
 }
 
 /* Variante per GTO/SBR indiretto: il registro puntato contiene uno step — Variant for indirect GTO/SBR: the pointed register contains a program
-   di programma (000-959), non un numero di registro dati (00-99). */ — step (000-959), not a data-register number (00-99). */
+   di programma (000-959), non un numero di registro dati (00-99). — step (000-959), not a data-register number (00-99). */
 static uint16_t bcd_to_int_step(const BCD_Reg *r) {
     uint64_t v = 0;
     for (int i = 4; i < REG_WIDTH; i++) {
@@ -2740,7 +2740,7 @@ static void process_keycode(TMS1500_State *cpu, uint8_t kc) {
             cpu->flags.run = !cpu->flags.run;
             /* R/S mette solo in pausa/riprende da dove si era interrotta — R/S only pauses/resumes from where it stopped
              * l'esecuzione (comportamento reale) — non riavvolge il PC,
-             * quello e' compito di RST. */ — that is RST's job. */
+             * quello e' compito di RST. — that is RST's job. */
             cpu->flags.idle = !cpu->flags.run;
             return;
 
@@ -2875,7 +2875,7 @@ static void process_keycode(TMS1500_State *cpu, uint8_t kc) {
                  * per la notazione scientifica in "Result mode" (%.7g). — for scientific notation in "Result mode" (%.7g).
                  * Con sign(1)+cifra(1)+punto(1)+decimali(6)=9 char e — With sign(1)+digit(1)+dot(1)+decimals(6)=9 chars and
                  * esponente su 3 char ("-88"), il totale sta esattamente — an exponent on 3 chars ("-88"), the total fits exactly
-                 * nei 12 caratteri del display, senza overflow. */ — in the 12 display characters, without overflow. */
+                 * nei 12 caratteri del display, senza overflow. — in the 12 display characters, without overflow. */
                 const int MAX_SIG_DIGITS = 7;
                 if (ndigits > MAX_SIG_DIGITS) {
                     input_len = start + MAX_SIG_DIGITS;
@@ -3962,7 +3962,7 @@ static bool read_2digit(TMS1500_State *cpu, uint8_t *out) {
         /* La ROM Master Library non incapsula i registri a 2 cifre come — The Master Library ROM does not wrap 2-digit registers as
          * due keycode-cifra separati (come farebbe un programma digitato — two separate keycode-digits (as a keyboard-typed program would
          * a tastiera): li memorizza come UN SOLO byte con il valore — do): it stores them as A SINGLE byte with the direct
-         * diretto 0-99 (es. "STO 09" = opcode + un byte di valore 9). */ — value 0-99 (e.g. "STO 09" = opcode + a byte of value 9). */
+         * diretto 0-99 (es. "STO 09" = opcode + un byte di valore 9). — value 0-99 (e.g. "STO 09" = opcode + a byte of value 9). */
         const LibraryModule *mod = library_get_active();
         uint16_t prog_end = mod ? mod->rom_size : 0;
         if (cpu->prog_pc >= prog_end) return false;
@@ -3986,7 +3986,7 @@ static bool read_3digit(TMS1500_State *cpu, uint16_t *out) {
         /* Indirizzi GTO/SBR/DSZ nella ROM Master Library: due byte, — GTO/SBR/DSZ addresses in the Master Library ROM: two bytes,
          * centinaia (0-9) poi decine+unità impacchettate (00-99), — hundreds (0-9) then packed tens+units (00-99),
          * combinati come centinaia*100 + decine_unita. Non tre — combined as hundreds*100 + tens_units. Not three
-         * byte-cifra singoli come nei programmi utente digitati. */ — single digit-bytes as in typed user programs. */
+         * byte-cifra singoli come nei programmi utente digitati. — single digit-bytes as in typed user programs. */
         const LibraryModule *mod = library_get_active();
         uint16_t prog_end = mod ? mod->rom_size : 0;
         if (cpu->prog_pc + 1 >= prog_end) return false;
@@ -4520,7 +4520,7 @@ static void format_value_string(const TMS1500_State *cpu, char *buf, unsigned in
             }
             /* Un risultato "libero" (non FIX) non deve mostrare zeri di — A "free" (non-FIX) result must not show padding zeros up to
              * riempimento fino a 10 cifre: es. 5 -> "5." e non "5.0000000000", — 10 digits: e.g. 5 -> "5." and not "5.0000000000",
-             * 5.5 -> "5.5" e non "5.5000000000". */ — 5.5 -> "5.5" and not "5.5000000000". */
+             * 5.5 -> "5.5" e non "5.5000000000". — 5.5 -> "5.5" and not "5.5000000000". */
             trim_trailing_zeros(tmp);
         } else {
             /* Fuori range: notazione scientifica — Out of range: scientific notation */

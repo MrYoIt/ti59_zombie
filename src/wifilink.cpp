@@ -94,6 +94,11 @@ const I18N_TABLE = [
   ['setup_failed',       'Fallito: ',                              'Failed: '],
   ['setup_trying_connect','Tentativo connessione...',             'Attempting connection...'],
   ['setup_confirm_clear_all','Cancellare tutte?',                 'Delete all?'],
+  ['setup_h2_wifi_file', 'File credenziali (wifi.json)',           'Credentials file (wifi.json)'],
+  ['setup_btn_wifi_dl',  'Scarica file',                            'Download file'],
+  ['setup_btn_wifi_ul',  'Carica file',                             'Upload file'],
+  ['setup_choose_file',  'Scegli un file',                          'Choose a file'],
+  ['setup_file_saved',   'File salvato!',                           'File saved!'],
 
   // ── /manage — management ──────────────────────────────────────
   ['mgr_h2_cards',       'Schede programma',                      'Program cards'],
@@ -658,6 +663,14 @@ static const char WEB_SETUP[] = R"rawhtml(<!DOCTYPE html>
     <button class="btn btn-red" onclick="clearAll()" data-i18n="setup_btn_clear_all">Cancella tutto</button>
   </div>
 </div>
+<div class="panel">
+  <h2 data-i18n="setup_h2_wifi_file">File credenziali (wifi.json)</h2>
+  <input type="file" id="wifi-file" accept=".json,application/json" style="margin-top:4px">
+  <div class="form-row">
+    <button class="btn btn-teal" onclick="downloadWifiFile()" data-i18n="setup_btn_wifi_dl">Scarica file</button>
+    <button class="btn btn-amber" onclick="uploadWifiFile()" data-i18n="setup_btn_wifi_ul">Carica file</button>
+  </div>
+</div>
 <div class="status" id="status" data-i18n="setup_status_waiting">In attesa...</div>
 <script src="/i18n.js?v=3"></script>
 <script>
@@ -724,6 +737,27 @@ async function clearAll(){
   if(!confirm(t('setup_confirm_clear_all')))return;
   for(let i=3;i>=0;i--) await fetch(API+'/api/wifi/creds?idx='+i,{method:'DELETE'});
   loadCreds();
+}
+async function downloadWifiFile(){
+  try{
+    const r=await fetch(API+'/api/wifi/file');
+    const text=await r.text();
+    const a=document.createElement('a');
+    a.href='data:text/json;charset=utf-8,'+encodeURIComponent(text);
+    a.download='wifi.json';a.click();
+  }catch(e){document.getElementById('status').textContent=t('status_error')+e.message;}
+}
+async function uploadWifiFile(){
+  const inp=document.getElementById('wifi-file');
+  if(!inp.files.length){alert(t('setup_choose_file'));return;}
+  document.getElementById('status').textContent=t('setup_connecting');
+  try{
+    const text=await inp.files[0].text();
+    const r=await fetch(API+'/api/wifi/file',{method:'POST',body:text});
+    const j=await r.json();
+    if(j.ok){document.getElementById('status').textContent=t('setup_file_saved');setTimeout(()=>location.reload(),4000);}
+    else{document.getElementById('status').textContent=t('setup_failed')+(j.error||'?');}
+  }catch(e){document.getElementById('status').textContent=t('status_error')+e.message;}
 }
 scan();loadCreds();
 </script>
@@ -2642,11 +2676,26 @@ if (json[start] == '\"') {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   PERSISTENZA CREDENZIALI (NVS — Non-Volatile Storage) — CREDENTIALS PERSISTENCE (NVS — Non-Volatile Storage)
+   PERSISTENZA CREDENZIALI (file su SPIFFS — /wifi.json) — CREDENTIALS PERSISTENCE (SPIFFS file — /wifi.json)
    ═══════════════════════════════════════════════════════════════════ */
+// Le credenziali WiFi vivono in un file JSON su SPIFFS: salvabile,
+// modificabile e ricaricabile dall'utente via web. Il firmware le legge
+// all'avvio (wifi_load_creds), le riscrive a ogni modifica
+// (wifi_save_creds, atomico tmp+rename) e le espone per download/upload
+// su /api/wifi/file. Niente più credenziali in NVS.
+// WiFi credentials live in a JSON file on SPIFFS: savable, editable and
+// reloadable by the user via web. The firmware reads them at boot
+// (wifi_load_creds), rewrites them on every change (wifi_save_creds,
+// atomic tmp+rename) and exposes them for download/upload at
+// /api/wifi/file. No more credentials in NVS.
 #include <Preferences.h>
 
-static Preferences wifi_prefs;
+static String json_escape(const char *s);   // definita più sotto — defined below
+static String json_unescape(const String &s); // definita più sotto — defined below
+static bool wifi_save_creds();              // definita più sotto — defined below
+
+#define WIFI_CREDS_FILE "/wifi.json"   // elenco credenziali WiFi — WiFi credentials list
+#define WIFI_CREDS_TMP  "/wifi.tmp"    // file temporaneo per scrittura atomica — temp file for atomic write
 
 // ─── Impostazioni persistenti generiche (NVS, namespace separato) — generic persistent settings (NVS, separate namespace) ──
 static Preferences settings_prefs;
@@ -2708,68 +2757,156 @@ return;
     settings_prefs.end();
 Serial.printf("[CFG] Modulo libreria salvato: %s\n", (id && id[0]) ? id : "(nessuno)");
 }
-#define NVS_WIFI_NS   "ti59_wifi"
-#define NVS_KEY_COUNT "count"
+// Parser dell'array JSON di credenziali ({ssid,pass}): azzera e popola
+// wifi_creds[]/wifi_cred_count. Usato sia da wifi_load_creds (boot) sia
+// da /api/wifi/file (upload). Ritorna il numero di voci caricate.
+// Parses the JSON credentials array ({ssid,pass}): clears and fills
+// wifi_creds[]/wifi_cred_count. Used both by wifi_load_creds (boot) and
+// /api/wifi/file (upload). Returns the number of loaded entries.
+static int wifi_parse_creds_json(const String &json) {
+    memset(wifi_creds, 0, sizeof(wifi_creds));
+    wifi_cred_count = 0;
+    int pos = 0;
+    while (wifi_cred_count < MAX_CREDENTIALS) {
+        int b = json.indexOf('{', pos);
+        if (b < 0) break;
+        int e = json.indexOf('}', b);
+        if (e < 0) break;
+        String obj = json.substring(b, e + 1);
+        String ssid = json_unescape(json_extract(obj, "ssid"));
+        String pass = json_unescape(json_extract(obj, "pass"));
+        if (ssid.length() > 0 && ssid.length() <= 31) {
+            strncpy(wifi_creds[wifi_cred_count].ssid, ssid.c_str(), 31);
+            wifi_creds[wifi_cred_count].ssid[31] = 0;
+            if (pass.length() > 63) pass = pass.substring(0, 63);
+            strncpy(wifi_creds[wifi_cred_count].pass, pass.c_str(), 63);
+            wifi_creds[wifi_cred_count].pass[63] = 0;
+            wifi_cred_count++;
+        }
+        pos = e + 1;
+    }
+    return wifi_cred_count;
+}
+
+// Inverte json_escape: ricostruisce la stringa originale dai codici
+// \" \\ \n \r \t (e \/). Serve per un round-trip fedele di SSID/password
+// che contengono caratteri speciali.
+// Reverses json_escape: rebuilds the original string from the \" \\
+// \n \r \t (and \/) codes. Needed for a faithful round-trip of
+// SSID/passwords containing special characters.
+static String json_unescape(const String &s) {
+    String out;
+    out.reserve(s.length());
+    for (int i = 0; i < (int)s.length(); i++) {
+        char c = s[i];
+        if (c == '\\' && i + 1 < (int)s.length()) {
+            char n = s[++i];
+            switch (n) {
+                case '"':  out += '"';  break;
+                case '\\': out += '\\'; break;
+                case '/':  out += '/';  break;
+                case 'n':  out += '\n'; break;
+                case 'r':  out += '\r'; break;
+                case 't':  out += '\t'; break;
+                default:   out += n;    break;
+            }
+        } else {
+            out += c;
+        }
+    }
+    return out;
+}
 
 static bool wifi_load_creds() {
-    if (!wifi_prefs.begin(NVS_WIFI_NS, true)) {
-        Serial.println("[WiFi] NVS namespace non trovato, credenziali vuote");
-return false;
+    if (SPIFFS.exists(WIFI_CREDS_FILE)) {
+        File f = SPIFFS.open(WIFI_CREDS_FILE, FILE_READ);
+        if (f) {
+            String json = f.readString();
+            f.close();
+            wifi_parse_creds_json(json);
+            Serial.printf("[WiFi] Caricate %d credenziali da %s\n",
+                          wifi_cred_count, WIFI_CREDS_FILE);
+            return wifi_cred_count > 0;
+        }
     }
 
-    wifi_cred_count = wifi_prefs.getInt(NVS_KEY_COUNT, 0);
-if (wifi_cred_count < 0 || wifi_cred_count > MAX_CREDENTIALS) {
-        wifi_cred_count = 0;
-}
-
-    for (int i = 0; i < MAX_CREDENTIALS; i++) {
-        String ssid_key = "ssid" + String(i);
-String pass_key = "pass" + String(i);
-
-        String ssid = wifi_prefs.getString(ssid_key.c_str(), "");
-        String pass = wifi_prefs.getString(pass_key.c_str(), "");
-
-        strncpy(wifi_creds[i].ssid, ssid.c_str(), 31);
-wifi_creds[i].ssid[31] = 0;
-        strncpy(wifi_creds[i].pass, pass.c_str(), 63);
-        wifi_creds[i].pass[63] = 0;
+    // Migrazione una tantum: se il file non esiste ancora ma c'erano
+    // credenziali salvate in NVS dalla versione precedente, le sposta
+    // nel file e ripulisce il namespace (dimenticato per sempre).
+    // One-time migration: if the file does not exist yet but credentials
+    // were stored in NVS by the previous version, moves them to the file
+    // and clears the namespace (forgotten forever).
+    Preferences legacy;
+    if (legacy.begin("ti59_wifi", true)) {
+        int n = legacy.getInt("count", 0);
+        if (n > 0) {
+            memset(wifi_creds, 0, sizeof(wifi_creds));
+            wifi_cred_count = 0;
+            for (int i = 0; i < MAX_CREDENTIALS && i < n; i++) {
+                String ssid = legacy.getString(("ssid" + String(i)).c_str(), "");
+                String pass = legacy.getString(("pass" + String(i)).c_str(), "");
+                if (ssid.length() > 0 && ssid.length() <= 31) {
+                    strncpy(wifi_creds[wifi_cred_count].ssid, ssid.c_str(), 31);
+                    wifi_creds[wifi_cred_count].ssid[31] = 0;
+                    if (pass.length() > 63) pass = pass.substring(0, 63);
+                    strncpy(wifi_creds[wifi_cred_count].pass, pass.c_str(), 63);
+                    wifi_creds[wifi_cred_count].pass[63] = 0;
+                    wifi_cred_count++;
+                }
+            }
+            legacy.end();
+            if (wifi_save_creds()) {
+                Preferences wipe;
+                wipe.begin("ti59_wifi", false);
+                for (int i = 0; i < MAX_CREDENTIALS; i++) {
+                    wipe.remove(("ssid" + String(i)).c_str());
+                    wipe.remove(("pass" + String(i)).c_str());
+                }
+                wipe.remove("count");
+                wipe.end();
+                Serial.printf("[WiFi] Migrate %d credenziali da NVS a %s\n",
+                              wifi_cred_count, WIFI_CREDS_FILE);
+                return wifi_cred_count > 0;
+            }
+            legacy.begin("ti59_wifi", true);   // riapri se il save è fallito — reopen if the save failed
+        }
+        legacy.end();
     }
-
-    wifi_prefs.end();
 
     wifi_cred_count = 0;
-for (int i = 0; i < MAX_CREDENTIALS; i++) {
-        if (wifi_creds[i].ssid[0]) wifi_cred_count++;
-}
-
-    Serial.printf("[WiFi] Caricate %d credenziali da NVS\n", wifi_cred_count);
-    return wifi_cred_count > 0;
+    Serial.printf("[WiFi] Nessun file %s, elenco credenziali vuoto\n", WIFI_CREDS_FILE);
+    return false;
 }
 
 static bool wifi_save_creds() {
-    if (!wifi_prefs.begin(NVS_WIFI_NS, false)) {
-        Serial.println("[WiFi] NVS open failed");
-return false;
+    // Ricostruisce l'intero file (unica copia, nessun namespace NVS).
+    // Rebuilds the whole file (single copy, no NVS namespace).
+    String json = "[";
+    bool first = true;
+    for (int i = 0; i < MAX_CREDENTIALS; i++) {
+        if (!wifi_creds[i].ssid[0]) continue;
+        if (!first) json += ",";
+        first = false;
+        json += "{\"ssid\":\"" + json_escape(wifi_creds[i].ssid)
+             +  "\",\"pass\":\"" + json_escape(wifi_creds[i].pass) + "\"}";
     }
+    json += "]";
 
-    int count = 0;
-for (int i = 0; i < MAX_CREDENTIALS; i++) {
-        if (wifi_creds[i].ssid[0]) count++;
-String ssid_key = "ssid" + String(i);
-        String pass_key = "pass" + String(i);
-if (wifi_creds[i].ssid[0]) {
-            wifi_prefs.putString(ssid_key.c_str(), wifi_creds[i].ssid);
-            wifi_prefs.putString(pass_key.c_str(), wifi_creds[i].pass);
-} else {
-            wifi_prefs.remove(ssid_key.c_str());
-            wifi_prefs.remove(pass_key.c_str());
-}
+    // Scrittura atomica tmp+rename (stesso pattern delle posizioni overlay).
+    // Atomic tmp+rename write (same pattern as the overlay positions).
+    File f = SPIFFS.open(WIFI_CREDS_TMP, FILE_WRITE);
+    if (!f) {
+        Serial.println("[WiFi] Impossibile scrivere il file credenziali");
+        return false;
     }
-
-    wifi_prefs.putInt(NVS_KEY_COUNT, count);
-    wifi_prefs.end();
-
-    Serial.printf("[WiFi] Salvate %d credenziali su NVS\n", count);
+    f.print(json);
+    f.close();
+    SPIFFS.remove(WIFI_CREDS_FILE);
+    if (!SPIFFS.rename(WIFI_CREDS_TMP, WIFI_CREDS_FILE)) {
+        Serial.println("[WiFi] Rename file credenziali fallito");
+        return false;
+    }
+    Serial.printf("[WiFi] Salvate %d credenziali su %s\n", wifi_cred_count, WIFI_CREDS_FILE);
     return true;
 }
 
@@ -3875,9 +4012,54 @@ static void handle_wifi_connect() {
         send_ok();
         vTaskDelay(pdMS_TO_TICKS(1000));
         ESP.restart();
-} else {
+    } else {
         send_err("no known network found");
+    }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   FILE CREDENZIALI (/api/wifi/file) — CREDENTIALS FILE (/api/wifi/file)
+   ═══════════════════════════════════════════════════════════════════ */
+// GET: restituisce il file /wifi.json così com'è (da salvare/editarre).
+// Nota: contiene le password in chiaro, è per il proprietario del device.
+// GET: returns the /wifi.json file as-is (to save/edit).
+// Note: it contains plaintext passwords, it is for the device owner.
+static void handle_wifi_file_get() {
+    server.sendHeader("Content-Disposition", "attachment; filename=\"wifi.json\"");
+    if (SPIFFS.exists(WIFI_CREDS_FILE)) {
+        File f = SPIFFS.open(WIFI_CREDS_FILE, FILE_READ);
+        server.streamFile(f, "application/json");
+        f.close();
+    } else {
+        server.send(200, "application/json", "[]");
+    }
+}
+
+// POST: riceve il JSON completo delle credenziali (array {ssid,pass}),
+// valida, sostituisce l'elenco in RAM e riscrive il file. Se poi trova
+// una rete tra quelle nuove, si connette e riavvia; altrimenti rimane
+// salvato per l'avvio successivo.
+// POST: receives the full credentials JSON (array {ssid,pass}), validates,
+// replaces the in-RAM list and rewrites the file. If one of the new
+// networks is reachable, connects and reboots; otherwise the list stays
+// saved for the next boot.
+static void handle_wifi_file_post() {
+    String body = server.arg("plain");
+    if (body.length() == 0) { send_err("empty body"); return; }
+    if (body.indexOf('{') < 0 || body.indexOf("\"ssid\"") < 0) {
+        send_err("not a wifi.json file");
+        return;
+    }
+    int n = wifi_parse_creds_json(body);
+    if (n == 0) { send_err("no valid credentials in file"); return; }
+    if (!wifi_save_creds()) { send_err("write failed"); return; }
+    if (wifi_try_stored_creds()) {
+        send_ok();
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        ESP.restart();
+    } else {
+        send_ok();
+    }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -4249,7 +4431,9 @@ server.on("/api/wifi/scan",    HTTP_GET,    handle_wifi_scan);
 server.on("/api/wifi/creds",   HTTP_POST,   handle_wifi_creds_post);
     server.on("/api/wifi/creds",   HTTP_DELETE, handle_wifi_creds_delete);
     server.on("/api/wifi/connect", HTTP_POST,   handle_wifi_connect);
-server.on("/api/print",     HTTP_GET, handle_download_print);
+    server.on("/api/wifi/file",    HTTP_GET,    handle_wifi_file_get);
+    server.on("/api/wifi/file",    HTTP_POST,   handle_wifi_file_post);
+    server.on("/api/print",     HTTP_GET, handle_download_print);
     server.on("/api/listing",   HTTP_GET, handle_download_listing);
     server.on("/api/progs",     HTTP_GET, handle_download_progs);
 server.on("/api/progfile",  HTTP_GET, handle_download_prog);

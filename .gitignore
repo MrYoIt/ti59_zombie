@@ -6,3 +6,6 @@ OpenCode Desktop.dmg
 
 # Artefatti di build Arduino
 build/
+
+# Abilita il pannello "god mode" (/wolf) sul server; resta solo locale
+data/god_mode.txt

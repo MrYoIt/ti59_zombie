@@ -36,7 +36,9 @@ Italiano:
     ne ha bisogno per overlay, template SVG e posizioni).
   - Alla prima accensione la scheda apre un captive portal WiFi
     con pagina /setup: scegli la tua rete e inserisci la
-    password (salvata in NVS). Poi si riavvia sulla rete.
+    password (salvata nel file /wifi.json su SPIFFS, che puoi
+    anche scaricare/modificare/caricare dalla stessa pagina).
+    Poi si riavvia sulla rete.
 English:
   - Flash the firmware (ti59_zombie.ino, ESP32S3 Dev Module
     board).
@@ -44,7 +46,9 @@ English:
     device needs it for overlays, SVG templates and positions).
   - On first boot the board opens a WiFi captive portal with the
     /setup page: pick your network and enter the password (stored
-    in NVS). Then it reboots onto your network.
+    in the /wifi.json file on SPIFFS, which you can also
+    download/edit/upload from that page). Then it reboots onto
+    your network.
 
 ---------------------------------------------------------------
 3) USO DEL WEB — USING THE WEB UI
@@ -151,10 +155,12 @@ English:
 8) SICUREZZA — SECURITY
 ---------------------------------------------------------------
 Italiano:
-  - Non inserire credenziali personali nel sorgente. I default in
-    src/config.h vanno cambiati/rimossi prima di pubblicare il
-    codice.
+  - Non inserire credenziali personali nel sorgente: le reti WiFi
+    si configurano dal captive portal /setup e vivono nel file
+    /wifi.json su SPIFFS (niente più hardcoded in config.h, che
+    ora contiene solo pinout e costanti).
 English:
-  - Do not put personal credentials in the source. The defaults
-    in src/config.h must be changed/removed before publishing the
-    code.
+  - Do not put personal credentials in the source: WiFi networks
+    are configured from the /setup captive portal and live in the
+    /wifi.json file on SPIFFS (no more hardcoding in config.h,
+    which now only contains pinout and constants).

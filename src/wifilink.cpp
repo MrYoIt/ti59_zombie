@@ -119,6 +119,7 @@ const I18N_TABLE = [
   ['mgr_btn_listing',    'Listing',                                'Listing'],
   ['mgr_btn_progs',      'Progs',                                  'Progs'],
   ['mgr_h2_fs',          'File system (SPIFFS)',                  'File system (SPIFFS)'],
+  ['mgr_btn_save_fs',    'Salva file sul PC',                      'Save file to PC'],
   ['mgr_btn_update',     'Aggiorna',                                'Refresh'],
   ['mgr_h2_system',      'Sistema',                                'System'],
   ['mgr_lbl_ram',        'RAM',                                    'RAM'],
@@ -1021,6 +1022,7 @@ static const char WEB_IDE[] = R"rawhtml(<!DOCTYPE html>
   .card-item button{font-size:9px;padding:2px 6px;border:none;border-radius:2px;
                     cursor:pointer;background:var(--teal);color:#fff}
   .card-item button.del{background:#5a1a1a}
+  .card-item button.up{background:#406060}
   .input-row{display:flex;gap:4px;margin-top:6px}
   .input-row input{flex:1;background:var(--bg);border:1px solid var(--border);
                     color:var(--text);padding:4px 6px;border-radius:3px;font-size:10px}
@@ -1592,6 +1594,7 @@ static const char WEB_MANAGE[] = R"rawhtml(<!DOCTYPE html>
   .card-item button{font-size:9px;padding:2px 6px;border:none;border-radius:2px;
                     cursor:pointer;background:var(--teal);color:#fff}
   .card-item button.del{background:#5a1a1a}
+  .card-item button.up{background:#406060}
   .input-row{display:flex;gap:4px;margin-top:6px}
   .input-row input{flex:1;background:var(--bg);border:1px solid var(--border);
                     color:var(--text);padding:4px 6px;border-radius:3px;font-size:10px}
@@ -1900,6 +1903,7 @@ async function listFS() {
       div.className = 'card-item';
       div.innerHTML = '<span class="name">'+escHtml(f.name)+'</span>'+
         '<span style="color:var(--muted);font-size:9px">'+f.size+'B</span>'+
+        '<button class="up" title="'+t('mgr_btn_save_fs')+'" onclick="downloadFile(\'/api/fs/file?path='+encodeURIComponent(f.name)+'\',\''+escHtml(f.name).replace(/^.*\//,'').replace(/'/g,"\\'")+'\')">&darr;</button>'+
         '<button class="del" onclick="deleteFS(\''+escHtml(f.name).replace(/'/g,"\\'")+'\')">X</button>';
       el.appendChild(div);
     });
@@ -4266,6 +4270,23 @@ static void handle_fs_delete() {
     send_json(200, "{\"ok\":true}");
 }
 
+// GET /api/fs/file?path=... — scarica/ salva un file SPIFFS sul PC.
+// GET /api/fs/file?path=... — downloads/saves a SPIFFS file to the PC.
+static void handle_fs_download() {
+    if (!server.hasArg("path")) { send_err("missing path"); return; }
+    String path = server.arg("path");
+    if (!path.startsWith("/")) path = "/" + path;
+    if (!SPIFFS.exists(path)) { send_err("file not found"); return; }
+    File f = SPIFFS.open(path, FILE_READ);
+    if (!f) { send_err("open failed"); return; }
+    String fname = path;   // usa solo il nome base per l'attachment — use only the basename for the attachment
+    int lp = fname.lastIndexOf('/');
+    if (lp >= 0) fname = fname.substring(lp + 1);
+    server.sendHeader("Content-Disposition", "attachment; filename=\"" + fname + "\"");
+    server.streamFile(f, "application/octet-stream");
+    f.close();
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    REGISTRAZIONE ROUTE — ROUTE REGISTRATION
    ═══════════════════════════════════════════════════════════════════ */
@@ -4416,6 +4437,7 @@ server.on("/api/card/file", HTTP_GET,    handle_card_download);
         server.send(200, "image/svg+xml", svg);
     });
     server.on("/api/fs",          HTTP_GET,    handle_fs_list);
+    server.on("/api/fs/file",     HTTP_GET,    handle_fs_download);
     server.on("/api/fs/upload",   HTTP_POST,   handle_fs_upload, handle_fs_upload_progress);
     server.on("/api/fs/delete",   HTTP_POST,   handle_fs_delete);
     server.on("/api/fs/format",   HTTP_POST,   handle_fs_format);

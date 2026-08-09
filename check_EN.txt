@@ -1,0 +1,17 @@
+case KC_RST:
+            // When running "as-is" from a module, restart from the beginning
+            // of the designated PROGRAM (not from the absolute address 0 of
+            // the ROM, which almost certainly belongs to another program).
+            cpu->prog_pc = showing_lib_prog ? lib_scope_addr : 0;
+            cpu->sp = 0;
+            cpu->flags.run = false;
+            for (int i = 0; i < 10; i++) user_flags[i] = false;
+            if (showing_lib_prog) {
+                showing_lib_prog = false;
+                for (int i = 0; i < 10; i++) lib_custom_label_pc[i] = 0xFFFF;
+            }
+            return;
+    }
+
+    // ── Digits ────────────────────────────────────────────
+    if (is_digit_key(kc)) 

@@ -1,0 +1,259 @@
+// ════════════════════════════════════════════════════════════
+// PROGRAM EXECUTION - direct instruction decoding from ROM
+// ════════════════════════════════════════════════════════════
+
+// Forward helpers
+static bool read_2digit(TMS1500_State *cpu, uint8_t *out);
+static bool read_3digit(TMS1500_State *cpu, uint16_t *out);
+static bool read_label(TMS1500_State *cpu, uint8_t *out);
+static bool read_next(TMS1500_State *cpu, uint8_t *out);
+
+static void exec_program_step(TMS1500_State *cpu) {
+    uint16_t plen = exec_prog_len(cpu);
+    if (!cpu->flags.run || plen == 0) return;
+
+    // For library programs: stop when the end of the program is reached
+    if (showing_lib_prog) {
+        uint16_t prog_end = lib_scope_addr + lib_scope_len;
+        if (cpu->prog_pc >= prog_end) {
+            cpu->flags.run = false;
+            cpu->flags.idle = true;
+            return;
+        }
+    }
+
+    // Read opcode and decode the full instruction
+    uint16_t *pc = &cpu->prog_pc;
+    uint8_t opcode = prog_read_step(cpu, *pc);
+
+    // LBL xx (2 bytes) - skip label and parameter
+    if (opcode == KC_LBL) {
+        *pc += 2;
+        if (showing_lib_prog) {
+            uint16_t prog_end = lib_scope_addr + lib_scope_len;
+            if (*pc >= prog_end) { cpu->flags.run = false; cpu->flags.idle = true; }
+        } else if (*pc >= plen) {
+            *pc = 0;
+        }
+        return;
+    }
+
+    // INV prefix (next instruction executed with INV flag)
+    if (opcode == KC_INV) {
+        if (showing_lib_prog) {
+            uint16_t prog_end = lib_scope_addr + lib_scope_len;
+            if (*pc + 1 >= prog_end) return;
+        } else if (*pc + 1 >= plen) {
+            return;
+        }
+        cpu->flags.inv = true;
+        *pc += 1;
+        uint8_t next_op = prog_read_step(cpu, *pc);
+        exec_program_step(cpu); // re-enter with INV set
+        return;
+    }
+
+    // Default PC advance (will be overridden by jumps/subroutines)
+    *pc += 1;
+
+    // R/S - stop program
+    if (opcode == KC_RS) {
+        cpu->flags.run = false;
+        cpu->flags.idle = true;
+        return;
+    }
+
+    // RTN (92) - return from subroutine
+    if (opcode == KC_RETURN) {
+        if (cpu->sp > 0) *pc = cpu->stack[--cpu->sp];
+        else { cpu->flags.run = false; cpu->flags.idle = true; }
+        return;
+    }
+
+    // Helper macros
+    #define READ2(d) read_2digit(cpu, d)
+    #define READ3(d) read_3digit(cpu, d)
+    #define READL(d) read_label(cpu, d)
+    #define NEXT(c) read_next(cpu, c)
+
+    // DSZ nn LLL
+    if (opcode == KC_DSZ) {
+        uint8_t reg;
+        if (READ2(&reg)) {
+            uint8_t lbl;
+            if (READL(&lbl)) {
+                uint16_t target = find_label(cpu, lbl);
+                if (target != 0xFFFF) dsz_do(cpu, reg, target);
+                else cpu->flags.error = true;
+            } else {
+                uint16_t addr;
+                if (READ3(&addr)) dsz_do(cpu, reg, addr);
+                else cpu->flags.error = true;
+            }
+        } else cpu->flags.error = true;
+        return;
+    }
+
+    // SBR lbl / GTO lbl  (label A-E, A'-E')
+    if (opcode == KC_SBR || opcode == KC_GTO) {
+        bool is_sbr = (opcode == KC_SBR);
+        uint8_t lbl;
+        if (READL(&lbl)) {
+            uint16_t target = find_label(cpu, lbl);
+            if (target != 0xFFFF) {
+                if (is_sbr && cpu->sp < STACK_SIZE - 1) cpu->stack[cpu->sp++] = *pc;
+                *pc = target;
+                if (is_sbr) { cpu->flags.run = true; cpu->flags.idle = false; }
+            } else cpu->flags.error = true;
+        } else {
+            uint16_t addr;
+            if (READ3(&addr)) {
+                if (is_sbr && cpu->sp < STACK_SIZE - 1) cpu->stack[cpu->sp++] = *pc;
+                *pc = showing_lib_prog ? (lib_scope_addr + (addr % plen)) : (addr % plen);
+                if (is_sbr) { cpu->flags.run = true; cpu->flags.idle = false; }
+            } else cpu->flags.error = true;
+        }
+        return;
+    }
+
+    // STO/RCL/SUM/EXC/PROD rr (2-digit register)
+    if (opcode == KC_STO || opcode == KC_RCL || opcode == KC_SUM ||
+        opcode == KC_EXC || opcode == KC_PROD) {
+        uint8_t reg;
+        if (!READ2(&reg)) { cpu->flags.error = true; return; }
+        reg %= 100;
+        BCD_Reg *bank = active_ram_bank(cpu);
+        switch (opcode) {
+            case KC_STO:  bcd_copy(&bank[reg], &cpu->reg[REG_A]); break;
+            case KC_RCL:  bcd_copy(&cpu->reg[REG_A], &bank[reg]); break;
+            case KC_SUM:  bcd_add(&bank[reg], &bank[reg], &cpu->reg[REG_A], &cpu->flags); break;
+            case KC_EXC: {
+                BCD_Reg tmp; bcd_copy(&tmp, &bank[reg]);
+                bcd_copy(&bank[reg], &cpu->reg[REG_A]);
+                bcd_copy(&cpu->reg[REG_A], &tmp);
+                break;
+            }
+            case KC_PROD: {
+                BCD_Reg res; bcd_zero(&res);
+                bcd_mul(&res, &bank[reg], &cpu->reg[REG_A], &cpu->flags);
+                bcd_copy(&bank[reg], &res);
+                break;
+            }
+        }
+        return;
+    }
+
+    // IND variants: STO IND, RCL IND, SUM IND, EXC IND, PROD IND, GTO IND
+    if (opcode == KC_STO_IND || opcode == KC_RCL_IND || opcode == KC_SUM_IND ||
+        opcode == KC_EXC_IND || opcode == KC_PROD_IND || opcode == KC_GTO_IND) {
+        uint8_t reg;
+        if (!READ2(&reg)) { cpu->flags.error = true; return; }
+        BCD_Reg *bank = active_ram_bank(cpu);
+        uint8_t ptr_reg = reg % 100;
+        uint16_t eff = (opcode == KC_GTO_IND) ? bcd_to_int_step(&bank[ptr_reg]) : bcd_to_int_reg(&bank[ptr_reg]);
+        eff %= (opcode == KC_GTO_IND) ? 1000 : 100;
+        switch (opcode) {
+            case KC_STO_IND: bcd_copy(&bank[eff], &cpu->reg[REG_A]); break;
+            case KC_RCL_IND: bcd_copy(&cpu->reg[REG_A], &bank[eff]); break;
+            case KC_SUM_IND: bcd_add(&bank[eff], &bank[eff], &cpu->reg[REG_A], &cpu->flags); break;
+            case KC_EXC_IND: {
+                BCD_Reg tmp; bcd_copy(&tmp, &bank[eff]);
+                bcd_copy(&bank[eff], &cpu->reg[REG_A]);
+                bcd_copy(&cpu->reg[REG_A], &tmp);
+                break;
+            }
+            case KC_PROD_IND: {
+                BCD_Reg res; bcd_zero(&res);
+                bcd_mul(&res, &bank[eff], &cpu->reg[REG_A], &cpu->flags);
+                bcd_copy(&bank[eff], &res);
+                break;
+            }
+            case KC_GTO_IND: *pc = showing_lib_prog ? (lib_scope_addr + (eff % plen)) : (eff % plen); break;
+        }
+        return;
+    }
+
+    // FIX n (1 digit)
+    if (opcode == KC_FIX) {
+        uint8_t d;
+        if (NEXT(&d) && d <= 9) {
+            if (d == 9) cpu->flags.fix = false;
+            else { cpu->flags.fix = true; cpu->fix_digits = d; }
+        } else cpu->flags.fix = false;
+        return;
+    }
+
+    // OP nn (2 digits)
+    if (opcode == KC_OP) {
+        uint8_t op;
+        if (READ2(&op)) exec_op(cpu, op);
+        else cpu->flags.error = true;
+        return;
+    }
+
+    // Single-byte math/func ops: delegate to process_keycode
+    process_keycode(cpu, opcode);
+    return;
+
+    #undef READ2
+    #undef READ3
+    #undef READL
+    #undef NEXT
+}
+
+// Helpers for reading program operands
+static bool read_2digit(TMS1500_State *cpu, uint8_t *out) {
+    if (showing_lib_prog) {
+        uint16_t prog_end = lib_scope_addr + lib_scope_len;
+        if (cpu->prog_pc + 1 >= prog_end) return false;
+    } else if (cpu->prog_pc + 1 >= cpu->prog_len) return false;
+    uint8_t d1 = prog_read_step(cpu, cpu->prog_pc);
+    uint8_t d2 = prog_read_step(cpu, cpu->prog_pc + 1);
+    cpu->prog_pc += 2;
+    if (d1 > 9 || d2 > 9) return false;
+    *out = d1 * 10 + d2;
+    return true;
+}
+
+static bool read_3digit(TMS1500_State *cpu, uint16_t *out) {
+    if (showing_lib_prog) {
+        uint16_t prog_end = lib_scope_addr + lib_scope_len;
+        if (cpu->prog_pc + 2 >= prog_end) return false;
+    } else if (cpu->prog_pc + 2 >= cpu->prog_len) return false;
+    uint8_t d1 = prog_read_step(cpu, cpu->prog_pc);
+    uint8_t d2 = prog_read_step(cpu, cpu->prog_pc + 1);
+    uint8_t d3 = prog_read_step(cpu, cpu->prog_pc + 2);
+    cpu->prog_pc += 3;
+    if (d1 > 9 || d2 > 9 || d3 > 9) return false;
+    *out = (uint16_t)(d1 * 100 + d2 * 10 + d3);
+    return true;
+}
+
+static bool read_label(TMS1500_State *cpu, uint8_t *out) {
+    if (showing_lib_prog) {
+        uint16_t prog_end = lib_scope_addr + lib_scope_len;
+        if (cpu->prog_pc >= prog_end) return false;
+    } else if (cpu->prog_pc >= cpu->prog_len) return false;
+    uint8_t kc = prog_read_step(cpu, cpu->prog_pc);
+    cpu->prog_pc += 1;
+    // Valid label keys: A-E (11-15), A'-E' (16-19, 10)
+    if (kc >= KC_A && kc <= KC_E) *out = kc;
+    else if (kc >= KC_A_PRIME && kc <= KC_D_PRIME) *out = kc;
+    else if (kc == KC_E_PRIME) *out = kc;
+    else return false;
+    return true;
+}
+
+static bool read_next(TMS1500_State *cpu, uint8_t *out) {
+    if (showing_lib_prog) {
+        uint16_t prog_end = lib_scope_addr + lib_scope_len;
+        if (cpu->prog_pc >= prog_end) return false;
+    } else if (cpu->prog_pc >= cpu->prog_len) return false;
+    *out = prog_read_step(cpu, cpu->prog_pc);
+    cpu->prog_pc += 1;
+    return true;
+}
+
+// ════════════════════════════════════════════════════════════
+// INIT / RESET / STEP
+// ════════════════════════════════════════════════════════════

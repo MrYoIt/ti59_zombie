@@ -803,9 +803,9 @@ static const char WEB_IDE[] = R"rawhtml(<!DOCTYPE html>
   .digit-group{position:relative;width:30px;height:40px;flex-shrink:0}
   .led-digit{position:relative;width:24px;height:40px}
   .led-digit svg{width:100%;height:100%;display:block}
-  /* Segmenti DRITTI (senza inclinazione), con smussi: poligoni
-     parallelogramma regolari con estremità a 45°, vertici ESATTAMENTE
-     condivisi ai giunti (niente micro-fessure). */
+  /* Griglia pura a rettangoli (nessuno smusso, taglio netto a 90°),
+     inclinata di 11.5° verso destra con un <g transform="skewX(...)">
+     unico nell'SVG — vertici condivisi ai giunti, zero fessure. */
   .led-digit polygon{fill:#1a0f05;transition:fill 0.15s}
   .led-digit polygon.on{fill:var(--led);filter:drop-shadow(0 0 3px rgba(255,32,32,0.8)) drop-shadow(0 0 6px rgba(255,32,32,0.4))}
   .led-dp{position:absolute;bottom:0;right:0;width:6px;height:6px;
@@ -1196,24 +1196,30 @@ function renderDisplay(buf, opPending, isError) {
     const digit = document.createElement('div');
     digit.className = 'led-digit';
     const onSegs = SEG_MAP[d.ch] || '';
-    // Segmenti DRITTI (senza inclinazione), con smussi: ogni segmento è
-    // un parallelogramma regolare con estremità a 45° e vertici ESATTAMENTE
-    // condivisi ai giunti (nessuna micro-fessura). 40x68 è solo lo spazio
-    // di coordinate SVG, scalato dal CSS a 24x40px reali.
+    // Griglia pura: rettangoli che condividono i bordi (nessuno smusso,
+    // taglio netto a 90°) — zero fessure perché sono letteralmente le
+    // stesse coordinate di bordo tra un segmento e il vicino. L'intero
+    // digit è inclinato di 11.5° con un unico <g transform="skewX(...)">
+    // che avvolge tutti e 7 i poligoni insieme: l'inclinazione resta
+    // coerente su ogni giunto (skew di un gruppo preserva i vertici
+    // condivisi al suo interno), niente da aggiustare segmento per
+    // segmento. Il viewBox è allargato di 14 unità a sinistra per non
+    // tagliare la parte in basso, che con lo skew si sposta in quella
+    // direzione (68 × tan(11.5°) ≈ 13.83).
     const SEG_POINTS = {
-      a: '0,0 40,0 33,7 7,7',
-      b: '40,0 33,7 33,30.5 40,34',
-      c: '40,34 33,37.5 33,61 40,68',
-      d: '7,61 33,61 40,68 0,68',
-      e: '0,34 7,37.5 7,61 0,68',
-      f: '0,0 7,7 7,30.5 0,34',
-      g: '7,30.5 33,30.5 40,34 33,37.5 7,37.5 0,34',
+      a: '7,0 33,0 33,7 7,7',
+      b: '33,0 40,0 40,30.5 33,30.5',
+      c: '33,37.5 40,37.5 40,68 33,68',
+      d: '7,61 33,61 33,68 7,68',
+      e: '0,37.5 7,37.5 7,68 0,68',
+      f: '0,0 7,0 7,30.5 0,30.5',
+      g: '7,30.5 33,30.5 33,37.5 7,37.5',
     };
-    let svg = '<svg viewBox="0 0 40 68">';
+    let svg = '<svg viewBox="-14 0 54 68"><g transform="skewX(-11.5)">';
     for (const s of 'abcdefg') {
       svg += '<polygon class="' + (onSegs.includes(s) ? 'on' : '') + '" points="' + SEG_POINTS[s] + '"></polygon>';
     }
-    svg += '</svg>';
+    svg += '</g></svg>';
     digit.innerHTML = svg;
     group.appendChild(digit);
 

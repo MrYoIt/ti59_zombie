@@ -1,0 +1,84 @@
+===================================================================
+ TI-59 ZOMBIE — EXPLANATORY GUIDE
+ TI-59 emulator on ESP32-S3
+===================================================================
+
+1) WHAT YOU NEED
+-------------------------------------------------------------------
+  - An ESP32-S3-DevKitC-1 N16R8 board (16 MB flash, 8 MB Octal
+    PSRAM) or similar.
+  - HT16K33 16x8 display (12 digits) on I2C.
+  - 9x5 keyboard matrix (optional: without it you use the web
+    IDE virtual keyboard).
+  - Arduino IDE 1.8.x or 2.x with the Espressif esp32 core.
+  - Libraries: MFRC522 (NFC reader only), NimBLE-Arduino (BLE
+    printer only).
+
+2) FIRST BOOT
+-------------------------------------------------------------------
+  - Flash the firmware (ti59_zombie.ino, ESP32S3 Dev Module
+    board).
+  - Upload the "data/" folder to the SPIFFS filesystem (the
+    device needs it for overlays, SVG templates and positions).
+  - On first boot the board opens a WiFi captive portal with the
+    /setup page: pick your network and enter the password (stored
+    in the /wifi.json file on SPIFFS, which you can also
+    download/edit/upload from that page). Then it reboots onto
+    your network.
+
+3) USING THE WEB UI
+-------------------------------------------------------------------
+  - Open the board IP address in your browser (e.g. from the
+    serial console) or use the included launcher files
+    (launch_ti59.ps1 / .sh, Avvia TI-59 Zombie.bat).
+  - "/"     : full virtual calculator (web IDE): keys, programs,
+              registers, overlays.
+  - "/manage": magnetic cards, current program, library modules,
+              printer/files, SPIFFS filesystem, system info,
+              language selector.
+  - "/overlays": overlay label editor (single overlays.txt file)
+              with live preview, magnetic card preview and a text
+              position panel (to fit the SVG templates).
+  - "/wolf" : engine tuning panel (only if /god_mode.txt exists
+              on SPIFFS).
+
+4) LIBRARY MODULES
+-------------------------------------------------------------------
+  14 "Solid State Software" modules with official numbering
+  (-1- Master Library ... -14- Structural Engineering). Select
+  them from /manage or with "2nd Pgm" nn. Module -15- (Math
+  Utilities) is not implemented yet.
+
+5) MAGNETIC CARDS / NFC
+-------------------------------------------------------------------
+  - Without an NFC reader: cards are JSON files in SPIFFS,
+    managed from /manage (WRITE/READ, upload/download, name).
+    The card-sense microswitch (GPIO15) simulates insertion.
+  - With an MFRC522 reader + NTAG213 tags: the flow matches the
+    original — READ on insertion, WRITE via the WRITE key or
+    /api/rfid/arm, ejection with the motor on GPIO42. The
+    UID->slot map lives in /rfid_map.json.
+
+6) PRINTER
+-------------------------------------------------------------------
+  The PC-100A printer is emulated at the logic level (20-char
+  buffer, ops 00-08). An optional BLE backend (NimBLE) sends the
+  lines to a thermal printer. Check your printer's real UUIDs
+  (nRF Connect) before use: the NUS convention is assumed by
+  default.
+
+7) COMMON ISSUES
+-------------------------------------------------------------------
+  - WDT reset loop at boot: non-exposed pins (22-34) used as GPIO
+    on the DevKitC-1. Use only pins 0-21 and 35-48.
+  - Lost USB connection: GPIO19/20 (USB D-/D+) used as GPIO.
+  - Overlay positions "back to zero": the device may lose a POST
+    /api/card_positions (unstable WiFi); saving now retries up to
+    3 times, but the file stays on SPIFFS.
+
+8) SECURITY
+-------------------------------------------------------------------
+  - Do not put personal credentials in the source: WiFi networks
+    are configured from the /setup captive portal and live in the
+    /wifi.json file on SPIFFS (no more hardcoding in config.h,
+    which now only contains pinout and constants).

@@ -25,7 +25,6 @@
  */
 
 #include "wifilink.h"
-#include "wifilink_modules.h"
 #include "wifilink_regs.h"
 #include "config.h"
 #include "display.h"
@@ -803,15 +802,12 @@ static const char WEB_IDE[] = R"rawhtml(<!DOCTYPE html>
             min-height:50px;gap:2px;padding:2px 0}
   .digit-group{position:relative;width:30px;height:40px;flex-shrink:0}
   .led-digit{position:relative;width:24px;height:40px}
-  .led-seg{position:absolute;background:#1a0f05;transition:all 0.15s}
-  .led-seg.on{background:var(--led);box-shadow:0 0 8px rgba(255,32,32,0.7),0 0 16px rgba(255,32,32,0.3)}
-  .led-seg.a{top:0;left:3px;right:3px;height:4px;clip-path:polygon(0 100%,15% 0,85% 0,100% 100%)}
-  .led-seg.b{top:2px;right:0;width:4px;height:16px;clip-path:polygon(0 0,100% 15%,100% 85%,0 100%)}
-  .led-seg.c{bottom:2px;right:0;width:4px;height:16px;clip-path:polygon(0 0,100% 15%,100% 85%,0 100%)}
-  .led-seg.d{bottom:0;left:3px;right:3px;height:4px;clip-path:polygon(0 0,15% 100%,85% 100%,100% 0)}
-  .led-seg.e{bottom:2px;left:0;width:4px;height:16px;clip-path:polygon(100% 0,0 15%,0 85%,100% 100%)}
-  .led-seg.f{top:2px;left:0;width:4px;height:16px;clip-path:polygon(100% 0,0 15%,0 85%,100% 100%)}
-  .led-seg.g{top:18px;left:3px;right:3px;height:4px;clip-path:polygon(0 50%,15% 0,85% 0,100% 50%,85% 100%,15% 100%)}
+  .led-digit svg{width:100%;height:100%;display:block}
+  /* Segmenti DRITTI (senza inclinazione), con smussi: poligoni
+     parallelogramma regolari con estremità a 45°, vertici ESATTAMENTE
+     condivisi ai giunti (niente micro-fessure). */
+  .led-digit polygon{fill:#1a0f05;transition:fill 0.15s}
+  .led-digit polygon.on{fill:var(--led);filter:drop-shadow(0 0 3px rgba(255,32,32,0.8)) drop-shadow(0 0 6px rgba(255,32,32,0.4))}
   .led-dp{position:absolute;bottom:0;right:0;width:6px;height:6px;
           border-radius:50%;background:#1a0f05;z-index:2}
   .led-dp.on{background:var(--led);box-shadow:0 0 8px rgba(255,32,32,0.9),0 0 16px rgba(255,32,32,0.4)}
@@ -1199,13 +1195,26 @@ function renderDisplay(buf, opPending, isError) {
 
     const digit = document.createElement('div');
     digit.className = 'led-digit';
-    const segs = 'abcdefg';
     const onSegs = SEG_MAP[d.ch] || '';
-    for (const s of segs) {
-      const seg = document.createElement('div');
-      seg.className = 'led-seg ' + s + (onSegs.includes(s) ? ' on' : '');
-      digit.appendChild(seg);
+    // Segmenti DRITTI (senza inclinazione), con smussi: ogni segmento è
+    // un parallelogramma regolare con estremità a 45° e vertici ESATTAMENTE
+    // condivisi ai giunti (nessuna micro-fessura). 40x68 è solo lo spazio
+    // di coordinate SVG, scalato dal CSS a 24x40px reali.
+    const SEG_POINTS = {
+      a: '0,0 40,0 33,7 7,7',
+      b: '40,0 33,7 33,30.5 40,34',
+      c: '40,34 33,37.5 33,61 40,68',
+      d: '7,61 33,61 40,68 0,68',
+      e: '0,34 7,37.5 7,61 0,68',
+      f: '0,0 7,7 7,30.5 0,34',
+      g: '7,30.5 33,30.5 40,34 33,37.5 7,37.5 0,34',
+    };
+    let svg = '<svg viewBox="0 0 40 68">';
+    for (const s of 'abcdefg') {
+      svg += '<polygon class="' + (onSegs.includes(s) ? 'on' : '') + '" points="' + SEG_POINTS[s] + '"></polygon>';
     }
+    svg += '</svg>';
+    digit.innerHTML = svg;
     group.appendChild(digit);
 
     const dp = document.createElement('div');
@@ -3546,6 +3555,17 @@ static String program_card_path(const char *module_id, int page) {
     return String(path);
 }
 
+// Sanitizza l'id modulo per l'uso in un path SPIFFS: ammette solo — Sanitizes the module id for use in a SPIFFS path: allows only
+// caratteri alfanumerici e '_', così un "id" malevolo non può — alphanumeric chars and '_', so a malicious "id" cannot
+// introdurre "/" o ".." per uscire dalla directory delle slide. — introduce "/" or ".." to escape the slides directory.
+static bool sanitize_module_id(String &id) {
+    for (unsigned i = 0; i < id.length(); i++) {
+        char c = id[i];
+        if (!(isalnum((unsigned char)c) || c == '_')) return false;
+    }
+    return !id.isEmpty();
+}
+
 // GET /api/program_card[?module=ml1&page=1] — se module/page non sono — GET /api/program_card[?module=ml1&page=1] — if module/page are not
 // passati, usa il modulo/programma attualmente selezionato sulla ROM — passed, uses the module/program currently selected on the active
 // attiva. 404 se non c'e' alcuna slide per quella combinazione. — ROM. 404 if there is no slide for that combination.
@@ -3578,7 +3598,7 @@ static void handle_program_card_post() {
     }
     String module_id = server.arg("module");
     int page = server.arg("page").toInt();
-    if (module_id.isEmpty() || page <= 0 || page > 99) { send_err("parametri non validi"); return; }
+    if (module_id.isEmpty() || !sanitize_module_id(module_id) || page <= 0 || page > 99) { send_err("parametri non validi"); return; }
     String body = server.arg("plain");
     if (body.isEmpty()) { send_err("corpo SVG vuoto"); return; }
     String path = program_card_path(module_id.c_str(), page);
@@ -3837,9 +3857,13 @@ static void handle_keypress() {
         send_err("missing row/col");
 return;
     }
-    uint8_t row = server.arg("row").toInt();
-    uint8_t col = server.arg("col").toInt();
-    keyboard_enqueue(g_kbd, row, col);
+    int row = server.arg("row").toInt();
+    int col = server.arg("col").toInt();
+    if (row < 0 || row >= KBD_ROWS || col < 0 || col >= KBD_COLS) {
+        send_err("row/col fuori range");
+        return;
+    }
+    keyboard_enqueue(g_kbd, (uint8_t)row, (uint8_t)col);
     send_ok();
 }
 
@@ -4461,7 +4485,6 @@ server.on("/api/wifi/creds",   HTTP_POST,   handle_wifi_creds_post);
 server.on("/api/progfile",  HTTP_GET, handle_download_prog);
     server.on("/api/sysinfo",   HTTP_GET, handle_sysinfo);
 
-    register_module_routes();
     register_regs_routes();
     server.onNotFound([](){
         if (server.method() == HTTP_OPTIONS) { handle_options(); return; }

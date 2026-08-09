@@ -29,8 +29,8 @@ extern const LibraryModule AV_MODULE;   // Modulo -6- Aviation — Module -6- Av
 extern const LibraryModule LL_MODULE;   // Modulo -7- Leisure Library — Module -7- Leisure Library
 extern const LibraryModule SA_MODULE;   // Modulo -8- Securities Analysis — Module -8- Securities Analysis
 extern const LibraryModule EE_MODULE;   // Modulo -9- Electrical Engineering — Module -9- Electrical Engineering
-extern const LibraryModule FM_MODULE;   // Modulo -10- Farming — Module -10- Farming
-extern const LibraryModule MU_MODULE;   // Modulo -11- Music — Module -11- Music
+extern const LibraryModule FM_MODULE;   // Modulo -10- Agriculture — Module -10- Agriculture
+extern const LibraryModule MU_MODULE;   // Modulo -11- Math Utilities — Module -11- Math Utilities
 extern const LibraryModule PH_MODULE;   // Modulo -12- Photography — Module -12- Photography
 extern const LibraryModule RP_MODULE;   // Modulo -13- RPN — Module -13- RPN
 extern const LibraryModule SE_MODULE;   // Modulo -14- Structural Engineering — Module -14- Structural Engineering

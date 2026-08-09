@@ -36,7 +36,6 @@
  *   rfid_reader.c/h      — Lettore/scrittore schede NFC (PN532)
  *   printer.c/h          — Stampante termica (seriale + BLE)
  *   wifilink.c/h         — Web server HTTP + IDE web embedded
- *   wifilink_modules.c/h — Endpoint API moduli libreria
  *   wifilink_regs.c/h    — Endpoint registri CPU
  *
  * Moduli libreria disponibili (14 moduli, id — numero ufficiale — nome):
@@ -87,7 +86,6 @@
 #include "src/cardemu.h"
 #include "src/rfid_reader.h"
 #include "src/wifilink.h"
-#include "src/wifilink_modules.h"
 #include "src/wifilink_regs.h"
 
 #include <WiFi.h>

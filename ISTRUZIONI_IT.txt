@@ -1,0 +1,85 @@
+===================================================================
+ TI-59 ZOMBIE — GUIDA ESPLICATIVA
+ Emulatore TI-59 su ESP32-S3
+===================================================================
+
+1) COSA SERVE
+-------------------------------------------------------------------
+  - Una scheda ESP32-S3-DevKitC-1 N16R8 (16 MB flash, 8 MB PSRAM
+    Octal) o simile.
+  - Display HT16K33 16x8 (12 digit) su I2C.
+  - Tastiera a matrice 9x5 (facoltativa: in mancanza si usa la
+    tastiera virtuale del web IDE).
+  - Arduino IDE 1.8.x o 2.x con core esp32 di Espressif.
+  - Librerie: MFRC522 (solo lettore NFC), NimBLE-Arduino (solo
+    stampante BLE).
+
+2) PRIMO AVVIO
+-------------------------------------------------------------------
+  - Flasha il firmware (ti59_zombie.ino, scheda ESP32S3 Dev
+    Module).
+  - Carica la cartella "data/" sul file system SPIFFS (il device
+    ne ha bisogno per overlay, template SVG e posizioni).
+  - Alla prima accensione la scheda apre un captive portal WiFi
+    con pagina /setup: scegli la tua rete e inserisci la
+    password (salvata nel file /wifi.json su SPIFFS, che puoi
+    anche scaricare/modificare/caricare dalla stessa pagina).
+    Poi si riavvia sulla rete.
+
+3) USO DEL WEB
+-------------------------------------------------------------------
+  - Apri nel browser l'indirizzo IP della scheda (es. dalla
+    console seriale) o usa i file di lancio inclusi
+    (launch_ti59.ps1 / .sh, Avvia TI-59 Zombie.bat).
+  - "/"     : calcolatrice virtuale completa (IDE web): tasti,
+              programmi, registri, overlay.
+  - "/manage": schede magnetiche, programma corrente, moduli
+              libreria, stampante/file, file system SPIFFS,
+              informazioni di sistema, scelta lingua.
+  - "/overlays": editor delle etichette overlay (file unico
+              overlays.txt) con anteprima live, anteprima
+              schede magnetiche e pannello posizioni del testo
+              (per adattare i template SVG).
+  - "/wolf" : pannello regolatori motore (solo se su SPIFFS esiste
+              /god_mode.txt).
+
+4) MODULI LIBRERIA
+-------------------------------------------------------------------
+  14 moduli "Solid State Software" con numerazione ufficiale
+  (-1- Master Library ... -14- Structural Engineering). Si
+  selezionano da /manage o con "2nd Pgm" nn. Il modulo -15-
+  (Math Utilities) non è ancora implementato.
+
+5) SCHEDE MAGNETICHE / NFC
+-------------------------------------------------------------------
+  - Senza lettore NFC: le schede sono file JSON in SPIFFS,
+    gestite da /manage (WRITE/READ, upload/download, nome).
+    Il microswitch card-sense (GPIO15) simula l'inserimento.
+  - Con lettore MFRC522 + tag NTAG213: il flusso riproduce quello
+    originale — READ all'inserzione, WRITE con tasto WRITE o
+    /api/rfid/arm, espulsione con motore su GPIO42. La mappa
+    UID->slot sta in /rfid_map.json.
+
+6) STAMPANTE
+-------------------------------------------------------------------
+  La stampante PC-100A è emulata a livello logico (buffer 20
+  caratteri, ops 00-08). Un backend BLE (NimBLE) opzionale invia
+  le righe a una stampante termica. Controlla gli UUID reali
+  della tua stampante (nRF Connect) prima dell'uso: di default si
+  assume la convenzione NUS.
+
+7) PROBLEMI COMUNI
+-------------------------------------------------------------------
+  - WDT reset in loop al boot: pin non esposti (22-34) usati come
+    GPIO sulla DevKitC-1. Usa solo pin 0-21 e 35-48.
+  - Connessione USB persa: GPIO19/20 (USB D-/D+) usati come GPIO.
+  - Le posizioni overlay "tornano a zero": il device può perdere
+    una POST /api/card_positions (WiFi instabile); il salvataggio
+    ora ritenta fino a 3 volte, ma il file resta su SPIFFS.
+
+8) SICUREZZA
+-------------------------------------------------------------------
+  - Non inserire credenziali personali nel sorgente: le reti WiFi
+    si configurano dal captive portal /setup e vivono nel file
+    /wifi.json su SPIFFS (niente più hardcoded in config.h, che
+    ora contiene solo pinout e costanti).

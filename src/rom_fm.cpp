@@ -17,7 +17,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 // rom_fm.cpp — generato da .t59 — generated from .t59
-// Modulo: Farming  |  id="fm"  |  16 programmi  |  ROM_SIZE=5000 — Module: Farming | id="fm" | 16 programs | ROM_SIZE=5000
+// Modulo: Agriculture  |  id="fm"  |  16 programmi  |  ROM_SIZE=5000 — Module: Agriculture | id="fm" | 16 programs | ROM_SIZE=5000
 // Codice di sicurezza ROM: 00  (non protetto) — ROM security code: 00 (unprotected)
 
 #include "rom_fm.h"
@@ -296,7 +296,7 @@ static const LibraryProgram fm_programs[] = {
 
 const LibraryModule FM_MODULE = {
     "fm",
-    "-10- Farming",
+    "-10- Agriculture",
     fm_rom,
     5000,
     fm_programs,

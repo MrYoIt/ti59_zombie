@@ -1,0 +1,224 @@
+===================================================================
+ TI-59 ZOMBIE — DOCUMENTATION
+ Emulator of the programmable TI-59 calculator (1977) on ESP32-S3
+===================================================================
+
+Faithful reproduction of the programmable TI-59 calculator (1977),
+based on emulation of the TMC0501 microprocessor, with an embedded
+web interface that also acts as an IDE. Arduino firmware for the
+ESP32-S3 DevKitC-1 (N16R8, 16 MB flash, 8 MB Octal PSRAM).
+
+Copyright (C) 2026 Maurizio Petruccioli (MrYo). GPL-3.0-or-later.
+
+
+-------------------------------------------------------------------
+1) WHAT YOU NEED — HARDWARE
+-------------------------------------------------------------------
+
+| Component                 | Notes                                       |
+|---------------------------|---------------------------------------------|
+| ESP32-S3 DevKitC-1 N16R8  | 16 MB flash, 8 MB Octal PSRAM               |
+| HT16K33 16x8 display      | I2C, 12 digits, SDA=43 SCL=44, addr 0x70    |
+| 9x5 keyboard              | 14-pin matrix: rows GPIO1-9, cols GPIO10-14  |
+| Magnetic cards            | microswitch GPIO15 (card-sense), LED GPIO16 |
+| RFID MFRC522 (optional)   | shared SPI, CS=21, RST=45, power GPIO41      |
+| Eject motor (optional)    | GPIO42                                      |
+| BLE printer (optional)    | Bluetooth LE (NimBLE)                       |
+| microSD                   | CS=40, shared SPI bus SCK=18 / MOSI=17 / MISO=39 |
+| Power                     | LiPo 3.7V + charging module + SPST switch   |
+
+GPIO CAUTION: on the DevKitC-1 pins 22-34 are the internal
+flash/PSRAM bus (not exposed); writing to them blocks flash -> WDT
+reset loop at boot. Use ONLY the exposed pins: 0-21 and 35-48
+(35-37 reserved PSRAM, 38 = RGB LED on rev v1.1, 41/42 = MTDI/MTMS
+free, 43/44 = U0TXD/U0RXD free because the console is on USB,
+45/46 strapping ok).
+
+GPIO19/20 are USB D-/D+ (USB-Serial-JTAG, the console): do NOT use
+them as GPIO, otherwise you "unplug" the USB and lose console/flash.
+
+
+-------------------------------------------------------------------
+2) ARDUINO IDE SETUP
+-------------------------------------------------------------------
+
+Arduino IDE 1.8.x or 2.x. Tested with IDE 2.x, core esp32 3.3.11,
+arduino-cli 1.5.1 (same settings via CLI).
+
+2.1) Install the ESP32 core
+  1. Arduino IDE -> File -> Preferences (macOS: Arduino IDE -> Settings).
+  2. In "Additional boards manager URLs" add:
+     https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+  3. Tools -> Board -> Boards Manager -> search "esp32" -> install
+     "esp32 by Espressif Systems" (latest stable).
+  4. Restart the IDE after installing the core.
+
+2.2) Board selection
+  Tools -> Board -> esp32 -> ESP32S3 Dev Module
+
+2.3) Board settings (required for the current binary)
+
+  | Setting               | Value                      |
+  |-----------------------|----------------------------|
+  | Board                 | ESP32S3 Dev Module         |
+  | Upload Speed          | 921600 (USB-Serial-JTAG)   |
+  | USB Mode              | Hardware CDC and JTAG      |
+  | CPU Frequency         | 240 MHz (WiFi)             |
+  | Flash Mode            | QIO 80MHz                  |
+  | Flash Size            | 16M                        |
+  | Partition Scheme      | Custom (uses partitions.csv)|
+  | PSRAM                 | OPI PSRAM                  |
+  | Core Debug Level      | Info (suggested)           |
+
+  FlashSize=16M and PartitionScheme=Custom are essential: the sketch
+  exceeds the default partition limit (1.25 MB). With the project's
+  partitions.csv the app fits in app0 (3 MB) and SPIFFS gets 1.5 MB
+  (offset 0x310000).
+
+2.4) Libraries (Library Manager)
+  Only the required third-party libraries (all the others — WiFi,
+  WebServer, SPIFFS, DNSServer, Preferences, Wire, SHA1Builder, FS,
+  SPI, Arduino, freertos — ship with the ESP32 core):
+
+  | Library         | Author         | Used for                 |
+  |-----------------|----------------|--------------------------|
+  | MFRC522         | GithubCommunity| NFC RFID reader (opt.)   |
+  | NimBLE-Arduino  | h2zero         | BLE printer (opt.)       |
+
+  Both are OPTIONAL: the sketch detects at boot whether the module is
+  present; without the library the RFID/BLE flow stays inactive.
+
+2.5) Flashing the firmware
+  1. Open ti59_zombie.ino (the src/ files live in the same folder and
+     are picked up automatically).
+  2. Select the board and the settings from table 2.3.
+  3. Select the serial port (via USB-Serial-JTAG).
+  4. Sketch -> Upload / Verify (Ctrl+R / Ctrl+U). The first build may
+     take a few minutes.
+
+  If the port does not show up: use a good-quality USB data cable. Do
+  not touch GPIO19/20 (they are used by USB).
+
+2.6) SPIFFS upload (data/ folder)
+  The SPIFFS filesystem (SVG templates, overlays.txt, overlay_pos.json)
+  must be uploaded AFTER the firmware:
+  - "ESP32 Sketch Data Upload" plugin (e.g. me-no-dev/arduino-esp32fs-plugin)
+  - Or esptool: esptool --chip esp32s3 write_flash 0x310000 file.spiffs.bin
+    (offset = spiffs partition origin in partitions.csv; size 0x180000)
+  - Or via web: /manage page -> SPIFFS file section.
+
+
+-------------------------------------------------------------------
+3) FIRST BOOT (WIFI)
+-------------------------------------------------------------------
+
+  - On first boot the board opens a WiFi captive portal with the /setup
+    page: pick your network and enter the password (stored in /wifi.json
+    on SPIFFS, downloadable/editable/reloadable from that page). Then it
+    reboots onto your network.
+  - Web server base port: 80 (WIFI_PORT in src/config.h).
+
+
+-------------------------------------------------------------------
+4) USING THE WEB — PAGES AND APIS
+-------------------------------------------------------------------
+
+  Open the board IP in your browser (e.g. from the serial console) or
+  use the included launcher files (launch_ti59.ps1 / .sh, Avvia TI-59
+  Zombie.bat).
+
+  | URL        | Page                                                    |
+  |------------|---------------------------------------------------------|
+  | /          | Calculator IDE: keys, programs, registers, overlays     |
+  | /manage    | Magnetic cards, program, modules, printer, files,       |
+  |            | SPIFFS filesystem, system info, language selector       |
+  | /overlays  | Overlay label editor (overlays.txt) with live preview,  |
+  |            | card preview and text position panel                    |
+  | /wolf      | Tuning panel (ONLY if /god_mode.txt exists on SPIFFS)   |
+
+  Main APIs: /api/status, /api/regs, /api/modules,
+  /api/modules/listing, /api/overlays, /api/card_positions,
+  /api/card, /api/card/file, /api/program_card, /api/keypress,
+  /api/prog, /api/reset, /api/timing, /api/eject, /api/rfid/*,
+  /api/wifi/*, /api/fs.
+
+
+-------------------------------------------------------------------
+5) LIBRARY MODULES
+-------------------------------------------------------------------
+
+  14 "Solid State Software" modules with official numbering. Select
+  them from /manage or with "2nd Pgm" nn.
+
+  | id | Official no. | Module                    |
+  |----|--------------|---------------------------|
+  | ml1| -1-          | Master Library            |
+  | st | -2-          | Applied Statistics        |
+  | re | -3-          | Real Estate               |
+  | sv | -4-          | Surveying                 |
+  | na | -5-          | Marine Navigation         |
+  | av | -6-          | Aviation                  |
+  | ll | -7-          | Leisure Library           |
+  | sa | -8-          | Securities Analysis       |
+  | ee | -9-          | Electrical Engineering    |
+  | fm | -10-         | Farming                   |
+  | mu | -11-         | Music                     |
+  | ph | -12-         | Photography               |
+  | rp | -13-         | RPN                       |
+  | se | -14-         | Structural Engineering    |
+
+  Not yet implemented: -15- Math Utilities.
+
+
+-------------------------------------------------------------------
+6) MAGNETIC CARDS / NFC
+-------------------------------------------------------------------
+
+  - Without an NFC reader: cards are JSON files in SPIFFS, managed
+    from /manage (WRITE/READ, upload/download, name). The card-sense
+    microswitch (GPIO15) simulates insertion.
+  - With an MFRC522 reader + NTAG213 tags: the flow matches the
+    original — READ on insertion, WRITE via the WRITE key or
+    /api/rfid/arm, ejection with the motor on GPIO42. The UID->slot
+    map lives in /rfid_map.json.
+
+
+-------------------------------------------------------------------
+7) PRINTER
+-------------------------------------------------------------------
+
+  The PC-100A printer is emulated at the logic level (20-char buffer,
+  ops 00-08). An optional BLE backend (NimBLE) sends the lines to a
+  thermal printer. Check your printer's real UUIDs (nRF Connect)
+  before use: the NUS convention is assumed by default.
+
+
+-------------------------------------------------------------------
+8) COMMON ISSUES
+-------------------------------------------------------------------
+
+  - WDT reset loop at boot: non-exposed pins (22-34) used as GPIO on
+    the DevKitC-1. Use only pins 0-21 and 35-48.
+  - Lost USB connection: GPIO19/20 (USB D-/D+) used as GPIO.
+  - Overlay positions "back to zero": the device may lose a POST
+    /api/card_positions (unstable WiFi); saving now retries up to 3
+    times, but the file stays on SPIFFS.
+
+
+-------------------------------------------------------------------
+9) SECURITY
+-------------------------------------------------------------------
+
+  - No credentials in the source: WiFi networks are configured from
+    the /setup captive portal and live in the /wifi.json file on
+    SPIFFS (config.h only holds pinout and constants). The file
+    contains plaintext passwords: it belongs to the device owner.
+  - The /wolf (god mode) panel only activates if /god_mode.txt exists
+    on SPIFFS.
+
+
+-------------------------------------------------------------------
+10) LICENSE
+-------------------------------------------------------------------
+
+  GPL-3.0-or-later — see LICENSE.

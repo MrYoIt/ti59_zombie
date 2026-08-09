@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TI-59 ZOMBIE v1.1 — Collegamenti</title>
+<style>
+  :root {
+    --bg: #0e0e1a;
+    --panel: #13131f;
+    --border: #1e2a4a;
+    --green: #00ff88;
+    --yellow: #ffd700;
+    --red: #ff4d4d;
+    --blue: #4fc3f7;
+    --orange: #ff8c42;
+    --cyan: #00e5ff;
+    --purple: #b388ff;
+    --white: #e8e8f0;
+    --dim: #6a7080;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Share Tech Mono', ui-monospace, Consolas, monospace;
+    padding: 24px 16px;
+    line-height: 1.4;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 24px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h1 {
+    font-family: 'Orbitron', 'Segoe UI', sans-serif;
+    font-weight: 900;
+    font-size: 1.25em;
+    color: var(--green);
+    letter-spacing: 4px;
+    margin-bottom: 6px;
+  }
+
+  .sub { font-size: 0.72em; color: var(--blue); letter-spacing: 2px; line-height: 1.7; }
+  .sub b { color: var(--yellow); }
+
+  /* MAPPA COMPONENTI */
+  .comp-map {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 10px;
+    margin-bottom: 26px;
+  }
+
+  .comp-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+
+  .comp-card h3 {
+    font-family: 'Orbitron', 'Segoe UI', sans-serif;
+    font-size: 0.62em;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .comp-card h3.green  { color: var(--green); }
+  .comp-card h3.blue   { color: var(--blue); }
+  .comp-card h3.orange { color: var(--orange); }
+  .comp-card h3.yellow { color: var(--yellow); }
+  .comp-card h3.cyan   { color: var(--cyan); }
+  .comp-card h3.purple { color: var(--purple); }
+  .comp-card h3.red    { color: var(--red); }
+
+  .pin-map { list-style: none; font-size: 0.62em; }
+  .pin-map li {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 2px 0;
+    border-bottom: 1px dotted #1a2030;
+  }
+  .pin-map li:last-child { border: none; }
+  .pin-num  { color: var(--yellow); min-width: 30px; }
+  .pin-name { color: var(--white); flex: 1; }
+  .pin-bb   { color: var(--cyan);  text-align: right; }
+
+  /* SCHEMI */
+  .scheme-title {
+    font-family: 'Orbitron', 'Segoe UI', sans-serif;
+    font-size: 0.7em;
+    letter-spacing: 2px;
+    color: var(--green);
+    margin: 6px 0 8px;
+  }
+  .scheme { margin: 0 0 18px; }
+  .scheme svg {
+    width: 100%;
+    height: auto;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  /* TABELLE */
+  .section-title {
+    font-family: 'Orbitron', 'Segoe UI', sans-serif;
+    font-size: 0.72em;
+    letter-spacing: 3px;
+    padding: 8px 12px;
+    margin: 22px 0 8px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title.pwr   { color: var(--red);   background: rgba(255,77,77,0.08);    border-left: 3px solid var(--red); }
+  .section-title.kbd   { color: var(--yellow); background: rgba(255,215,0,0.08);    border-left: 3px solid var(--yellow); }
+  .section-title.disp  { color: var(--blue);   background: rgba(79,195,247,0.08);   border-left: 3px solid var(--blue); }
+  .section-title.spi   { color: var(--cyan);   background: rgba(0,229,255,0.08);    border-left: 3px solid var(--cyan); }
+  .section-title.rfid  { color: var(--orange); background: rgba(255,140,66,0.08);   border-left: 3px solid var(--orange); }
+  .section-title.misc  { color: var(--purple); background: rgba(179,136,255,0.08);  border-left: 3px solid var(--purple); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.66em;
+    margin-bottom: 6px;
+  }
+  thead th {
+    background: #0a0a16;
+    padding: 5px 8px;
+    text-align: left;
+    color: var(--dim);
+    font-size: 0.92em;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr { border-bottom: 1px solid #12121e; }
+  td { padding: 5px 8px; vertical-align: middle; }
+  .n     { color: var(--dim); min-width: 30px; }
+  .from  { color: var(--yellow); }
+  .to    { color: var(--cyan); }
+  .sig   { color: var(--white); }
+  .warn  { color: var(--red); }
+  .wire-dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  .note-box {
+    background: var(--panel);
+    border: 1px solid #2a3a1a;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 0.64em;
+    color: #bbb;
+    margin-top: 20px;
+    line-height: 1.7;
+  }
+  .note-box span   { color: var(--yellow); }
+  .note-box strong { color: var(--green); }
+  .note-box .risk  { color: var(--red); }
+
+  /* STAMPA: tutto chiaro, nessun riquadro scuro */
+  @media print {
+    @page { margin: 12mm; size: A4; }
+    body { background: white !important; color: black !important; padding: 0; 
+           font-family: 'Courier New', monospace; font-size: 10px; }
+    h1 { color: #111; letter-spacing: 3px; text-shadow: none; }
+    .sub { color: #333; }
+    header { border-bottom: 1px solid #999; margin-bottom: 14px; }
+
+    .comp-card,
+    .note-box,
+    .section-title { background: #fff !important; border: 1px solid #999 !important; color: #000 !important; }
+    .comp-card h3 { color: #111 !important; border-bottom: 1px solid #999; }
+    .pin-num  { color: #c00; }
+    .pin-name { color: #000; }
+    .pin-bb   { color: #036; text-align: right; }
+    .pin-map li { border-bottom: 1px dotted #bbb; }
+
+    .section-title { border-left-width: 3px; }
+    .section-title.pwr   { color: #900; }
+    .section-title.kbd   { color: #660; }
+    .section-title.disp  { color: #036; }
+    .section-title.spi   { color: #066; }
+    .section-title.rfid  { color: #a50; }
+    .section-title.misc  { color: #606; }
+
+    thead th { background: #eee !important; color: #333 !important; }
+    tbody tr { border-bottom: 1px solid #ddd; }
+    td { color: #000; }
+    .n    { color: #666; }
+    .from { color: #b00; }
+    .to   { color: #036; }
+    .sig  { color: #000; }
+    .warn { color: #c00; }
+
+    .scheme svg { background: #fff; border: 1px solid #999; }
+    .scheme-title { color: #111; }
+
+    .note-box { background: #fff !important; border: 1px solid #999 !important; color: #000 !important; }
+    .note-box span { color: #b00; }
+    .note-box strong { color: #060; }
+    .note-box .risk { color: #c00; }
+    a { color: #036; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>COLLEGAMENTI — TI-59 ZOMBIE v1.1</h1>
+  <div class="sub">
+    ESP32-S3 DevKitC-1 N16R8 (16 MB flash, 8 MB PSRAM Octal) · Display HT16K33 I2C · Lettore NFC MFRC522<br>
+    Tastiera originale intoccata · Alimentazione LiPo 3.7V · <b>Console su USB-Serial-JTAG (GPIO19/20)</b>
+  </div>
+</header>
+
+<!-- ═══ MAPPA COMPONENTI ═══ -->
+<div class="comp-map">
+
+  <div class="comp-card">
+    <h3 class="blue">ESP32-S3 DevKitC-1 N16R8</h3>
+    <ul class="pin-map">
+      <li><span class="pin-num">1–14</span><span class="pin-name">Tastiera (D1–D9, K_D–K_T)</span><span class="pin-bb">matrice 9×5</span></li>
+      <li><span class="pin-num">15</span><span class="pin-name">PIN_CARD_SENSE</span><span class="pin-bb">microswitch IN</span></li>
+      <li><span class="pin-num">16</span><span class="pin-name">PIN_LED_STATUS</span><span class="pin-bb">LED stato</span></li>
+      <li><span class="pin-num">17/18/39</span><span class="pin-name">SPI MOSI/SCK/MISO</span><span class="pin-bb">bus condiviso</span></li>
+      <li><span class="pin-num">21</span><span class="pin-name">RFID CS</span><span class="pin-bb">MFRC522</span></li>
+      <li><span class="pin-num">40</span><span class="pin-name">SD CS</span><span class="pin-bb">microSD</span></li>
+      <li><span class="pin-num">41</span><span class="pin-name">PIN_RFID_PWR</span><span class="pin-bb">alim. modulo</span></li>
+      <li><span class="pin-num">42</span><span class="pin-name">PIN_CARD_MOTOR</span><span class="pin-bb">motore espulsione</span></li>
+      <li><span class="pin-num">43/44</span><span class="pin-name">I2C SDA/SCL</span><span class="pin-bb">HT16K33 0x70</span></li>
+      <li><span class="pin-num">45</span><span class="pin-name">RFID RST</span><span class="pin-bb">MFRC522 reset</span></li>
+    </ul>
+  </div>
+
+  <div class="comp-card">
+    <h3 class="green">Display HT16K33</h3>
+    <ul class="pin-map">
+      <li><span class="pin-num">SDA</span><span class="pin-name">GPIO43</span><span class="pin-bb">pull-up 4.7k → 3V3</span></li>
+      <li><span class="pin-num">SCL</span><span class="pin-name">GPIO44</span><span class="pin-bb">pull-up 4.7k → 3V3</span></li>
+      <li><span class="pin-num">VCC</span><span class="pin-name">+3V3</span><span class="pin-bb">2.7–5.5V</span></li>
+      <li><span class="pin-num">GND</span><span class="pin-name">GND</span><span class="pin-bb"></span></li>
+      <li><span class="pin-num">OSC</span><span class="pin-name">GND</span><span class="pin-bb">osc. interna</span></li>
+      <li><span class="pin-num">AD0</span><span class="pin-name">GND</span><span class="pin-bb">addr 0x70</span></li>
+      <li><span class="pin-num">AD1</span><span class="pin-name">GND</span><span class="pin-bb">addr 0x70</span></li>
+    </ul>
+  </div>
+
+  <div class="comp-card">
+    <h3 class="orange">Lettore NFC MFRC522</h3>
+    <ul class="pin-map">
+      <li><span class="pin-num">SDA</span><span class="pin-name">GPIO21 (CS)</span><span class="pin-bb">SPI</span></li>
+      <li><span class="pin-num">SCK</span><span class="pin-name">GPIO18</span><span class="pin-bb">SPI</span></li>
+      <li><span class="pin-num">MOSI</span><span class="pin-name">GPIO17</span><span class="pin-bb">SPI</span></li>
+      <li><span class="pin-num">MISO</span><span class="pin-name">GPIO39</span><span class="pin-bb">SPI</span></li>
+      <li><span class="pin-num">RST</span><span class="pin-name">GPIO45</span><span class="pin-bb"></span></li>
+      <li><span class="pin-num">IRQ</span><span class="pin-name">—</span><span class="pin-bb">polling</span></li>
+      <li><span class="pin-num">3V3</span><span class="pin-name">via MOSFET</span><span class="pin-bb">GPIO41 HIGH</span></li>
+      <li><span class="pin-num">GND</span><span class="pin-name">GND</span><span class="pin-bb"></span></li>
+    </ul>
+    <div style="font-size:0.6em;color:#888;margin-top:6px">
+      Antenna 25×35mm incollata dentro il telaio, rivolta verso l'esterno (tag NTAG213, lettura 2–4cm).
+    </div>
+  </div>
+
+  <div class="comp-card">
+    <h3 class="cyan">Tastiera originale</h3>
+    <ul class="pin-map">
+      <li><span class="pin-num">D1–D9</span><span class="pin-name">Righe — GPIO1–9</span><span class="pin-bb">OUTPUT, LOW attivo</span></li>
+      <li><span class="pin-num">K_D</span><span class="pin-name">colonna 1 — GPIO10</span><span class="pin-bb">INPUT PULL-UP</span></li>
+      <li><span class="pin-num">K_P</span><span class="pin-name">colonna 2 — GPIO11</span><span class="pin-bb">INPUT PULL-UP</span></li>
+      <li><span class="pin-num">K_Q</span><span class="pin-name">colonna 3 — GPIO12</span><span class="pin-bb">INPUT PULL-UP</span></li>
+      <li><span class="pin-num">K_S</span><span class="pin-name">colonna 4 — GPIO13</span><span class="pin-bb">INPUT PULL-UP</span></li>
+      <li><span class="pin-num">K_T</span><span class="pin-name">colonna 5 — GPIO14</span><span class="pin-bb">INPUT PULL-UP</span></li>
+    </ul>
+    <div style="font-size:0.6em;color:#888;margin-top:6px">
+      LOW = tasto premuto. La matrice originale con diodi resta intoccata.<br>
+      Connettore piatto (visto da dietro, da sinistra): <b>g1 g14 g6 g7 g13 g4 g5 g12 g2 g9 g11 g3 g8 g10</b> — vedi <b>keyboard_pin.svg</b> (a ~1 cm dal bordo destro).
+    </div>
+  </div>
+
+  <div class="comp-card">
+    <h3 class="red">Alimentazione LiPo</h3>
+    <ul class="pin-map">
+      <li><span class="pin-num">LiPo</span><span class="pin-name">3.7V (2 pin B+/B−)</span><span class="pin-bb">→ modulo carica</span></li>
+      <li><span class="pin-num">SW</span><span class="pin-name">interruttore SPST</span><span class="pin-bb">sul positivo</span></li>
+      <li><span class="pin-num">5V</span><span class="pin-name">pin 5V DevKitC-1</span><span class="pin-bb">regolatore onboard</span></li>
+      <li><span class="pin-num">3V3</span><span class="pin-name">3.3V dal regolatore</span><span class="pin-bb">ESP + display + NFC</span></li>
+    </ul>
+    <div style="font-size:0.6em;color:#888;margin-top:6px">
+      Il modulo di carica NON passa corrente durante il caricamento (diodo interno): senza batteria il device non si accende nemmeno col caricatore collegato.
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ SEZIONE 1: ALIMENTAZIONE ═══ -->
+<div class="section-title pwr">
+  <span class="wire-dot" style="background:#ff4d4d"></span>
+  SEZIONE 1 — ALIMENTAZIONE (LiPo 3.7V → 5V DevKitC-1 → 3.3V onboard)
+</div>
+<div class="scheme-wrap">
+  <div class="scheme-title">Schema alimentazione</div>
+  <svg viewBox="0 0 780 300" xmlns="http://www.w3.org/2000/svg" font-family="Courier New, monospace">
+    <!-- box 1: LiPo -->
+    <rect x="30" y="90" width="140" height="110" rx="8" fill="#ffe9e9" stroke="#c00" stroke-width="2"/>
+    <text x="100" y="125" text-anchor="middle" font-size="16" font-weight="bold" fill="#a00">LiPo</text>
+    <text x="100" y="145" text-anchor="middle" font-size="13" fill="#600">3.7V</text>
+    <text x="100" y="162" text-anchor="middle" font-size="11" fill="#600">(form factor tasca)</text>
+    <text x="40" y="185" font-size="11" fill="#a00">B+</text>
+    <text x="40" y="200" font-size="11" fill="#444">B−</text>
+
+    <!-- modulo carica -->
+    <rect x="215" y="60" width="135" height="110" rx="8" fill="#ffe9d6" stroke="#e60" stroke-width="2"/>
+    <text x="282" y="112" text-anchor="middle" font-size="14" font-weight="bold" fill="#a50">MODULO</text>
+    <text x="282" y="128" text-anchor="middle" font-size="14" font-weight="bold" fill="#a50">CARICA</text>
+    <text x="282" y="148" text-anchor="middle" font-size="11" fill="#800">solo poli agli ingressi</text>
+
+    <!-- interruttore -->
+    <rect x="395" y="60" width="120" height="110" rx="8" fill="#ddd" stroke="#555" stroke-width="2"/>
+    <text x="455" y="112" text-anchor="middle" font-size="13" font-weight="bold" fill="#333">INTERRUTTORE</text>
+    <text x="455" y="130" text-anchor="middle" font-size="13" font-weight="bold" fill="#333">SPST</text>
+    <text x="455" y="150" text-anchor="middle" font-size="11" fill="#666">sul positivo (+)</text>
+
+    <!-- DevKitC -->
+    <rect x="560" y="55" width="190" height="120" rx="8" fill="#e9f2ff" stroke="#036" stroke-width="2"/>
+    <text x="655" y="90" text-anchor="middle" font-size="14" font-weight="bold" fill="#036">DevKitC-1</text>
+    <text x="655" y="108" text-anchor="middle" font-size="11" fill="#036">pin 5V → regolatore</text>
+    <text x="655" y="124" text-anchor="middle" font-size="11" fill="#036">onboard 3.3V</text>
+    <text x="655" y="142" text-anchor="middle" font-size="11" fill="#036">LDO abbassa 3.0–4.2V→3.3V</text>
+    <text x="572" y="172" font-size="11" fill="#c00">5V (ingresso)</text>
+
+    <!-- 3V3 rail -->
+    <rect x="560" y="215" width="190" height="45" rx="6" fill="#e6f6e6" stroke="#060" stroke-width="2"/>
+    <text x="655" y="243" text-anchor="middle" font-size="12" font-weight="bold" fill="#060">+3.3V RAIL → HT16K33 · MFRC522</text>
+
+    <!-- wires -->
+    <line x1="60" y1="185" x2="215" y2="120" stroke="#c00" stroke-width="3"/>
+    <line x1="60" y1="200" x2="215" y2="145" stroke="#444" stroke-width="3"/>
+    <line x1="350" y1="120" x2="395" y2="120" stroke="#c00" stroke-width="3"/>
+    <line x1="515" y1="120" x2="560" y2="120" stroke="#c00" stroke-width="3"/>
+    <circle cx="60" cy="185" r="4" fill="#c00"/>
+    <circle cx="60" cy="200" r="4" fill="#444"/>
+    <circle cx="215" cy="120" r="4" fill="#c00"/>
+    <circle cx="215" cy="145" r="4" fill="#444"/>
+    <circle cx="350" cy="120" r="4" fill="#c00"/>
+    <circle cx="395" cy="120" r="4" fill="#c00"/>
+    <circle cx="515" cy="120" r="4" fill="#c00"/>
+    <circle cx="560" cy="120" r="4" fill="#c00"/>
+    <line x1="655" y1="185" x2="655" y2="215" stroke="#060" stroke-width="3"/>
+    <circle cx="655" cy="185" r="4" fill="#060"/>
+    <text x="685" y="205" font-size="11" fill="#060">3.3V</text>
+    <text x="140" y="240" font-size="11" fill="#600">GND di tutto il circuito condiviso</text>
+  </svg>
+</div>
+<table>
+  <thead><tr><th>#</th><th>DA</th><th>A</th><th>SEGNALE</th><th>NOTE</th></tr></thead>
+  <tbody>
+    <tr><td class="n">1</td><td class="from">LiPo 3.7V B+</td><td class="to">modulo carica B+</td><td class="sig">VCC</td><td>solo i poli B+/B− in uso</td></tr>
+    <tr><td class="n">2</td><td class="from">LiPo 3.7V B−</td><td class="to">modulo carica B−</td><td class="sig">GND</td><td>massa generale</td></tr>
+    <tr><td class="n">3</td><td class="from">modulo carica OUT+</td><td class="to">interruttore SPST</td><td class="sig">VCC</td><td>on/off fisico</td></tr>
+    <tr><td class="n">4</td><td class="from">interruttore SPST</td><td class="to">pin <b>5V</b> DevKitC-1</td><td class="sig">VCC 3.0–4.2V</td><td>il LDO onboard regola a 3.3V</td></tr>
+    <tr><td class="n">5</td><td class="from">GND (modulo carica)</td><td class="to">pin GND DevKitC-1</td><td class="sig">GND</td><td>massa comune</td></tr>
+    <tr><td class="n">6</td><td class="from">GND DevKitC-1</td><td class="to">GND display + GND NFC</td><td class="sig">GND</td><td>stella/condiviso, fili corti</td></tr>
+  </tbody>
+</table>
+
+<!-- ═══ SEZIONE 2: TASTIERA ═══ -->
+<div class="section-title kbd">
+  <span class="wire-dot" style="background:#ffd700"></span>
+  SEZIONE 2 — TASTIERA ORIGINALE (matrice 9×5, GPIO1–14)
+</div>
+<div class="scheme-wrap">
+  <div class="scheme-title">Schema matrice tastiera</div>
+  <svg viewBox="0 0 780 340" xmlns="http://www.w3.org/2000/svg" font-family="Courier New, monospace">
+    <!-- colonna label -->
+    <text x="150" y="30" text-anchor="middle" font-size="13" fill="#111">COLONNE (INPUT PULL-UP, LOW = premuto)</text>
+    <text x="150" y="60" text-anchor="middle" font-size="12" fill="#333">K_D gpio10</text>
+    <text x="290" y="60" text-anchor="middle" font-size="12" fill="#333">K_P gpio11</text>
+    <text x="430" y="60" text-anchor="middle" font-size="12" fill="#333">K_Q gpio12</text>
+    <text x="570" y="60" text-anchor="middle" font-size="12" fill="#333">K_S gpio13</text>
+    <text x="710" y="60" text-anchor="middle" font-size="12" fill="#333">K_T gpio14</text>
+    <text x="150" y="315" text-anchor="middle" font-size="13" fill="#333">RIGHE (D-lines, OUTPUT, LOW attivo)</text>
+    <!-- righe -->
+    <g font-size="12" fill="#b00">
+      <text x="40" y="102">D1 gpio1</text><text x="40" y="142">D2 gpio2</text><text x="40" y="182">D3 gpio3</text>
+      <text x="40" y="222">D4 gpio4</text><text x="40" y="262">D5 gpio5</text><text x="40" y="295">… D6–D9 gpio6–9</text>
+    </g>
+    <!-- key matrix -->
+    <g fill="none" stroke="#333" stroke-width="2">
+      <rect x="100" y="85" width="60" height="28"/><rect x="240" y="85" width="60" height="28"/><rect x="380" y="85" width="60" height="28"/><rect x="520" y="85" width="60" height="28"/><rect x="660" y="85" width="60" height="28"/>
+      <rect x="100" y="125" width="60" height="28"/><rect x="240" y="125" width="60" height="28"/><rect x="380" y="125" width="60" height="28"/><rect x="520" y="125" width="60" height="28"/><rect x="660" y="125" width="60" height="28"/>
+      <rect x="100" y="165" width="60" height="28"/><rect x="240" y="165" width="60" height="28"/><rect x="380" y="165" width="60" height="28"/><rect x="520" y="165" width="60" height="28"/><rect x="660" y="165" width="60" height="28"/>
+      <rect x="100" y="205" width="60" height="28"/><rect x="240" y="205" width="60" height="28"/><rect x="380" y="205" width="60" height="28"/><rect x="520" y="205" width="60" height="28"/><rect x="660" y="205" width="60" height="28"/>
+      <rect x="100" y="245" width="60" height="28"/><rect x="240" y="245" width="60" height="28"/><rect x="380" y="245" width="60" height="28"/><rect x="520" y="245" width="60" height="28"/><rect x="660" y="245" width="60" height="28"/>
+    </g>
+    <!-- linee colonne + righe -->
+    <g stroke="#c00" stroke-width="2">
+      <line x1="130" y1="85" x2="130" y2="273"/><line x1="270" y1="85" x2="270" y2="273"/><line x1="410" y1="85" x2="410" y2="273"/><line x1="550" y1="85" x2="550" y2="273"/><line x1="690" y1="85" x2="690" y2="273"/>
+      <line x1="100" y1="99" x2="720" y2="99"/><line x1="100" y1="139" x2="720" y2="139"/><line x1="100" y1="179" x2="720" y2="179"/><line x1="100" y1="219" x2="720" y2="219"/><line x1="100" y1="259" x2="720" y2="259"/>
+    </g>
+  </svg>
+</div>
+<table>
+  <thead><tr><th>#</th><th>SEGNALE</th><th>GPIO</th><th>DIREZIONE</th><th>NOTE SCAN</th></tr></thead>
+  <tbody>
+    <tr><td class="n">7</td><td class="from">D1</td><td class="to">GPIO1</td><td class="sig">OUTPUT</td><td>riga 1 — attiva LOW</td></tr>
+    <tr><td class="n">8</td><td class="from">D2</td><td class="to">GPIO2</td><td class="sig">OUTPUT</td><td>riga 2</td></tr>
+    <tr><td class="n">9</td><td class="from">D3</td><td class="to">GPIO3</td><td class="sig">OUTPUT</td><td>riga 3</td></tr>
+    <tr><td class="n">10</td><td class="from">D4</td><td class="to">GPIO4</td><td class="sig">OUTPUT</td><td>riga 4</td></tr>
+    <tr><td class="n">11</td><td class="from">D5</td><td class="to">GPIO5</td><td class="sig">OUTPUT</td><td>riga 5</td></tr>
+    <tr><td class="n">12</td><td class="from">D6</td><td class="to">GPIO6</td><td class="sig">OUTPUT</td><td>riga 6</td></tr>
+    <tr><td class="n">13</td><td class="from">D7</td><td class="to">GPIO7</td><td class="sig">OUTPUT</td><td>riga 7</td></tr>
+    <tr><td class="n">14</td><td class="from">D8</td><td class="to">GPIO8</td><td class="sig">OUTPUT</td><td>riga 8</td></tr>
+    <tr><td class="n">15</td><td class="from">D9</td><td class="to">GPIO9</td><td class="sig">OUTPUT</td><td>riga 9</td></tr>
+    <tr><td class="n">16</td><td class="from">K_D</td><td class="to">GPIO10</td><td class="sig">INPUT PULL-UP</td><td>colonna 1 — LOW = premuto</td></tr>
+    <tr><td class="n">17</td><td class="from">K_P</td><td class="to">GPIO11</td><td class="sig">INPUT PULL-UP</td><td>colonna 2 (via CR5)</td></tr>
+    <tr><td class="n">18</td><td class="from">K_Q</td><td class="to">GPIO12</td><td class="sig">INPUT PULL-UP</td><td>colonna 3</td></tr>
+    <tr><td class="n">19</td><td class="from">K_S</td><td class="to">GPIO13</td><td class="sig">INPUT PULL-UP</td><td>colonna 4</td></tr>
+    <tr><td class="n">20</td><td class="from">K_T</td><td class="to">GPIO14</td><td class="sig">INPUT PULL-UP</td><td>colonna 5</td></tr>
+  </tbody>
+</table>
+
+<!-- ═══ SEZIONE 3: DISPLAY ═══ -->
+<div class="section-title disp">
+  <span class="wire-dot" style="background:#4fc3f7"></span>
+  SEZIONE 3 — DISPLAY VIRTUALE (HT16K33, I2C 0x70) → VFD
+</div>
+<div class="scheme-wrap">
+  <div class="scheme-title">Schema display</div>
+  <svg viewBox="0 0 780 262" xmlns="http://www.w3.org/2000/svg" font-family="Courier New, monospace">
+    <rect x="40" y="30" width="200" height="190" rx="8" fill="#fff7f0" stroke="#b30000" stroke-width="2"/>
+    <text x="140" y="62" text-anchor="middle" font-size="14" font-weight="bold" fill="#900">VFD ORIGINALE</text>
+    <text x="140" y="82" text-anchor="middle" font-size="12" fill="#900">12 digit × 8 segmenti</text>
+    <text x="140" y="100" text-anchor="middle" font-size="12" fill="#900">col 0 = D12 (esponente sx)</text>
+    <text x="140" y="118" text-anchor="middle" font-size="12" fill="#900">col 11 = D1 (destra)</text>
+    <text x="55" y="140" font-size="11" fill="#900">filamenti / griglia → driver</text>
+
+    <rect x="300" y="70" width="150" height="110" rx="8" fill="#fff3e0" stroke="#e60" stroke-width="2"/>
+    <text x="375" y="115" text-anchor="middle" font-size="14" font-weight="bold" fill="#a50">HT16K33</text>
+    <text x="375" y="135" text-anchor="middle" font-size="11" fill="#a50">driver 16×8 · addr 0x70</text>
+    <text x="310" y="158" font-size="10" fill="#a50">SDA=GPIO43</text>
+    <text x="310" y="172" font-size="10" fill="#a50">SCL=GPIO44</text>
+
+    <rect x="540" y="30" width="200" height="130" rx="8" fill="#e9f2ff" stroke="#036" stroke-width="2"/>
+    <text x="640" y="62" text-anchor="middle" font-size="14" font-weight="bold" fill="#036">ESP32-S3</text>
+    <text x="640" y="84" text-anchor="middle" font-size="12" fill="#036">SDA → GPIO43 (J3 pin)</text>
+    <text x="640" y="102" text-anchor="middle" font-size="12" fill="#036">SCL → GPIO44</text>
+    <text x="640" y="124" text-anchor="middle" font-size="11" fill="#036">pull-up 4.7k su SDA+SCL → 3V3</text>
+
+    <line x1="190" y1="95" x2="300" y2="95" stroke="#036" stroke-width="3"/>
+    <line x1="450" y1="95" x2="540" y2="95" stroke="#036" stroke-width="3"/>
+    <circle cx="190" cy="95" r="4" fill="#036"/>
+    <circle cx="300" cy="95" r="4" fill="#036"/>
+    <circle cx="450" cy="95" r="4" fill="#036"/>
+    <circle cx="540" cy="95" r="4" fill="#036"/>
+
+    <text x="140" y="200" text-anchor="middle" font-size="12" fill="#900">ATTN: GPIO19/20 = USB D−/D+ della console</text>
+    <text x="140" y="220" text-anchor="middle" font-size="12" fill="#900">NON usarli come I2C — scolleghi la USB</text>
+    <text x="140" y="240" text-anchor="middle" font-size="12" fill="#036">Per es.: SDA/SCL su GPIO43/44 (pad U0TXD/U0RXD, liberi)</text>
+  </svg>
+</div>
+<table>
+  <thead><tr><th>#</th><th>FUNZIONE</th><th>PIN</th><th>DESTINAZIONE</th><th>NOTE</th></tr></thead>
+  <tbody>
+    <tr><td class="n">21</td><td class="from">SDA</td><td class="to">GPIO43</td><td class="sig">HT16K33 SDA</td><td>pull-up 4.7k → 3V3</td></tr>
+    <tr><td class="n">22</td><td class="from">SCL</td><td class="to">GPIO44</td><td class="sig">HT16K33 SCL</td><td>pull-up 4.7k → 3V3</td></tr>
+    <tr><td class="n">23</td><td class="from">3V3</td><td class="to">HT16K33 VCC</td><td class="sig">+3V3</td><td>2.7–5.5V</td></tr>
+    <tr><td class="n">24</td><td class="from">GND</td><td class="to">HT16K33 GND</td><td class="sig">GND</td><td>massa</td></tr>
+    <tr><td class="n">25</td><td class="from">AD0/AD1</td><td class="to">GND</td><td class="sig">indirizzo</td><td>→ 0x70 (HT16K33_I2C_ADDR)</td></tr>
+    <tr><td class="n">26</td><td class="from">OSC</td><td class="to">GND</td><td class="sig">osc</td><td>oscillatore interno</td></tr>
+  </tbody>
+</table>
+
+<!-- ═══ SEZIONE 4: BUS SPI ═══ -->
+<div class="section-title spi">
+  <span class="wire-dot" style="background:#00e5ff"></span>
+  SEZIONE 4 — BUS SPI CONDIVISO (microSD + RFID MFRC522)
+</div>
+<div class="scheme-wrap">
+  <div class="scheme-title">Schema bus SPI</div>
+  <svg viewBox="0 0 780 240" xmlns="http://www.w3.org/2000/svg" font-family="Courier New, monospace">
+    <rect x="30" y="30" width="150" height="120" rx="8" fill="#e9f2ff" stroke="#036" stroke-width="2"/>
+    <text x="105" y="60" text-anchor="middle" font-size="13" font-weight="bold" fill="#036">ESP32-S3</text>
+    <text x="105" y="82" text-anchor="middle" font-size="11" fill="#036">SCK → GPIO18</text>
+    <text x="105" y="98" text-anchor="middle" font-size="11" fill="#036">MOSI → GPIO17</text>
+    <text x="105" y="114" text-anchor="middle" font-size="11" fill="#036">MISO → GPIO39</text>
+    <text x="105" y="130" text-anchor="middle" font-size="11" fill="#036">CS_SD → GPIO40</text>
+    <text x="105" y="146" text-anchor="middle" font-size="11" fill="#036">CS_RFID → GPIO21</text>
+
+    <rect x="280" y="30" width="130" height="120" rx="8" fill="#e6f2ff" stroke="#366" stroke-width="2"/>
+    <text x="345" y="62" text-anchor="middle" font-size="13" font-weight="bold" fill="#066">microSD</text>
+    <text x="345" y="82" text-anchor="middle" font-size="11" fill="#066">SCK · MOSI · MISO</text>
+    <text x="345" y="98" text-anchor="middle" font-size="11" fill="#066">CS → GPIO40</text>
+    <text x="345" y="118" text-anchor="middle" font-size="11" fill="#066">(SPIFFS)</text>
+
+    <rect x="500" y="30" width="130" height="120" rx="8" fill="#ffe9d6" stroke="#e60" stroke-width="2"/>
+    <text x="565" y="62" text-anchor="middle" font-size="13" font-weight="bold" fill="#a50">MFRC522</text>
+    <text x="565" y="82" text-anchor="middle" font-size="11" fill="#a50">SCK · MOSI · MISO</text>
+    <text x="565" y="98" text-anchor="middle" font-size="11" fill="#a50">CS → GPIO21</text>
+    <text x="565" y="114" text-anchor="middle" font-size="11" fill="#a50">RST → GPIO45</text>
+    <text x="565" y="130" text-anchor="middle" font-size="11" fill="#a50">3V3 → GPIO41 (alim.)</text>
+
+    <rect x="680" y="30" width="90" height="120" rx="8" fill="#eee" stroke="#666" stroke-width="2"/>
+    <text x="695" y="62" text-anchor="middle" font-size="13" font-weight="bold" fill="#333">CS01</text>
+    <text x="695" y="82" text-anchor="middle" font-size="11" fill="#333">clock 13M</text>
+    <text x="695" y="98" text-anchor="middle" font-size="11" fill="#333">x2</text>
+    <text x="695" y="118" text-anchor="middle" font-size="11" fill="#333">(schema ufficiale)</text>
+
+    <line x1="180" y1="60" x2="280" y2="60" stroke="#036" stroke-width="3"/>
+    <line x1="180" y1="90" x2="500" y2="90" stroke="#036" stroke-width="3"/>
+    <line x1="180" y1="102" x2="500" y2="102" stroke="#036" stroke-width="3"/>
+    <circle cx="180" cy="60" r="4" fill="#036"/><circle cx="280" cy="60" r="4" fill="#036"/>
+    <circle cx="180" cy="90" r="4" fill="#036"/><circle cx="500" cy="90" r="4" fill="#036"/>
+    <circle cx="180" cy="102" r="4" fill="#036"/><circle cx="500" cy="102" r="4" fill="#036"/>
+  </svg>
+</div>
+<table>
+  <thead><tr><th>#</th><th>SEGNALE</th><th>GPIO</th><th>A</th><th>NOTE</th></tr></thead>
+  <tbody>
+    <tr><td class="n">27</td><td class="from">SCK</td><td class="to">GPIO18</td><td class="sig">SD+RFID SCK</td><td>bus condiviso</td></tr>
+    <tr><td class="n">28</td><td class="from">MOSI</td><td class="to">GPIO17</td><td class="sig">SD+RFID MOSI</td><td>bus condiviso</td></tr>
+    <tr><td class="n">29</td><td class="from">MISO</td><td class="to">GPIO39</td><td class="sig">SD+RFID MISO</td><td>bus condiviso</td></tr>
+    <tr><td class="n">30</td><td class="from">CS_SD</td><td class="to">GPIO40</td><td class="sig">microSD</td><td>SPIFFS</td></tr>
+    <tr><td class="n">31</td><td class="from">CS_RFID</td><td class="to">GPIO21</td><td class="sig">MFRC522 SDA</td><td>chip select NFC</td></tr>
+  </tbody>
+</table>
+
+<!-- ═══ SEZIONE 5: LETTORE NFC ═══ -->
+<div class="section-title rfid">
+  <span class="wire-dot" style="background:#ff8c42"></span>
+  SEZIONE 5 — LETTORE SCHEDE NFC (inserimento → READ/WRITE → espulsione)
+</div>
+<div class="scheme-wrap">
+  <div class="scheme-title">Schema lettore schede</div>
+  <svg viewBox="0 0 780 300" xmlns="http://www.w3.org/2000/svg" font-family="Courier New, monospace">
+    <rect x="30" y="30" width="150" height="230" rx="10" fill="#f3f3f3" stroke="#666" stroke-width="2"/>
+    <text x="105" y="55" text-anchor="middle" font-size="13" font-weight="bold" fill="#333">MFRC522</text>
+    <text x="105" y="75" text-anchor="middle" font-size="11" fill="#333">CS 21 · RST 45</text>
+    <text x="105" y="91" text-anchor="middle" font-size="11" fill="#333">MOSI 17 · MISO 39</text>
+    <text x="105" y="107" text-anchor="middle" font-size="11" fill="#333">SCK 18</text>
+    <line x1="105" y1="115" x2="105" y2="130" stroke="#666" stroke-width="1"/>
+    <rect x="40" y="130" width="130" height="70" rx="6" fill="#fff0f0" stroke="#c00" stroke-width="2"/>
+    <text x="105" y="152" text-anchor="middle" font-size="12" font-weight="bold" fill="#a00">ALIMENTAZIONE</text>
+    <text x="105" y="170" text-anchor="middle" font-size="11" fill="#a00">3V3 (via MOSFET)</text>
+    <text x="105" y="186" text-anchor="middle" font-size="11" fill="#a00">attraverso GPIO41</text>
+
+    <rect x="300" y="30" width="160" height="110" rx="8" fill="#e9f2ff" stroke="#036" stroke-width="2"/>
+    <text x="380" y="60" text-anchor="middle" font-size="13" font-weight="bold" fill="#036">ESP32-S3</text>
+    <text x="380" y="80" text-anchor="middle" font-size="11" fill="#036">PIN_PWR → GPIO41 (HIGH=ON)</text>
+    <text x="380" y="96" text-anchor="middle" font-size="11" fill="#036">PIN_MOTOR → GPIO42</text>
+    <text x="380" y="112" text-anchor="middle" font-size="11" fill="#036">CARD_SENSE → GPIO15</text>
+
+    <rect x="300" y="170" width="160" height="90" rx="8" fill="#e6f6e9" stroke="#060" stroke-width="2"/>
+    <text x="380" y="193" text-anchor="middle" font-size="12" font-weight="bold" fill="#060">MICROSWITCH</text>
+    <text x="380" y="210" text-anchor="middle" font-size="11" fill="#060">GPIO15 INPUT PULL-UP</text>
+    <text x="380" y="226" text-anchor="middle" font-size="11" fill="#060">LOW = scheda inserita</text>
+    <text x="380" y="242" text-anchor="middle" font-size="11" fill="#060">fronte di salita = espulsione</text>
+
+    <rect x="560" y="30" width="160" height="110" rx="8" fill="#e6f2ff" stroke="#366" stroke-width="2"/>
+    <text x="640" y="60" text-anchor="middle" font-size="13" font-weight="bold" fill="#066">MOTORE DC</text>
+    <text x="640" y="80" text-anchor="middle" font-size="11" fill="#066">GPIO42 (HIGH = RUN)</text>
+    <text x="640" y="96" text-anchor="middle" font-size="11" fill="#066">transistor NPN/MOSFET</text>
+    <text x="640" y="112" text-anchor="middle" font-size="11" fill="#0c0">+ diodo flyback</text>
+
+    <line x1="180" y1="60" x2="300" y2="60" stroke="#e60" stroke-width="3"/>
+    <line x1="380" y1="140" x2="380" y2="170" stroke="#aaa" stroke-width="2" stroke-dasharray="4,3"/>
+    <line x1="180" y1="222" x2="300" y2="222" stroke="#036" stroke-width="3"/>
+    <line x1="460" y1="85" x2="560" y2="85" stroke="#333" stroke-width="3"/>
+    <circle cx="180" cy="60" r="4" fill="#e60"/><circle cx="300" cy="60" r="4" fill="#e60"/>
+    <circle cx="180" cy="222" r="4" fill="#036"/><circle cx="300" cy="222" r="4" fill="#036"/>
+    <circle cx="460" cy="85" r="4" fill="#333"/><circle cx="560" cy="85" r="4" fill="#333"/>
+  </svg>
+</div>
+<table>
+  <thead><tr><th>#</th><th>FUNZIONE</th><th>PIN</th><th>DESTINAZIONE</th><th>NOTE</th></tr></thead>
+  <tbody>
+    <tr><td class="n">32</td><td class="from">PIN_RFID_PWR</td><td class="to">GPIO41</td><td class="sig">gate MOSFET → 3V3 modulo</td><td>HIGH = modulo ON (idle: OFF)</td></tr>
+    <tr><td class="n">33</td><td class="from">PIN_RFID_RST</td><td class="to">GPIO45</td><td class="sig">MFRC522 RST</td><td>v1.1: GPIO38 è il LED RGB</td></tr>
+    <tr><td class="n">34</td><td class="from">PIN_CARD_SENSE</td><td class="to">GPIO15</td><td class="sig">microswitch (INPUT_PULL-UP)</td><td class="warn">LOW = scheda inserita</td></tr>
+    <tr><td class="n">35</td><td class="from">PIN_CARD_MOTOR</td><td class="to">GPIO42</td><td class="sig">motore espulsione</td><td>HIGH ~RFD_EJECT_MS=500ms</td></tr>
+    <tr><td class="n">36</td><td class="from">tag</td><td class="to">NTAG213</td><td class="sig">pagina 4 = slot (3 cifre ASCII)</td><td>fallback: mappa UID → slot</td></tr>
+  </tbody>
+</table>
+
+<!-- ═══ SEZIONE 6: VARI/MISC ═══ -->
+<div class="section-title misc">
+  <span class="wire-dot" style="background:#b388ff"></span>
+  SEZIONE 6 — LED / RISERVE / PIN VIETATI
+</div>
+<table>
+  <thead><tr><th>#</th><th>FUNZIONE</th><th>PIN</th><th>NOTE</th></tr></thead>
+  <tbody>
+    <tr><td class="n">37</td><td class="from">PIN_LED_STATUS</td><td class="to">GPIO16</td><td class="sig">LED heartbeat / stato</td></tr>
+    <tr><td class="n">38</td><td class="from">USB D−</td><td class="to">GPIO19</td><td class="warn">NON usare (console/flashing USB)</td></tr>
+    <tr><td class="n">39</td><td class="from">USB D+</td><td class="to">GPIO20</td><td class="warn">NON usare (console/flashing USB)</td></tr>
+    <tr><td class="n">40</td><td class="from">GPIO22–34</td><td class="to">—</td><td class="warn">VIETATI: bus interno flash/PSRAM DevKitC-1 (WDT reset in loop)</td></tr>
+    <tr><td class="n">41</td><td class="from">GPIO35–37</td><td class="to">—</td><td class="warn">riservati alla PSRAM Octal</td></tr>
+  </tbody>
+</table>
+
+<div class="note-box">
+  <strong>ORDINE DI MONTAGGIO CONSIGLIATO:</strong><br>
+  1. Tastiera (Sezione 2) e verifica scan da web (<span>/api/keypress</span>)<br>
+  2. Display (Sezione 3) — attesa "HELLO" all'avvio<br>
+  3. Alimentazione LiPo (Sezione 1), test tensione ai pin prima di collegare il resto<br>
+  4. microSD, poi lettore NFC (Sezione 4–5) e verifica <span>MFRC522 rilevato</span> al boot<br>
+  5. Microswitch + motore espulsione, test READ/WRITE con tag NTAG213<br><br>
+  <span>VERIFICA FINALE:</span> misurare che non ci siano corti tra 3V3 e GND prima di accendere.<br>
+  <span>NOTA GPIO45:</span> pin strapping — ok come output; evitare di collegarlo a massa al boot.<br>
+  <span class="risk">CRITICO:</span> niente accessi ai GPIO22–34/35–37 — scrivere sul bus flash/PSRAM blocca la flash e genera reset WDT in loop <span class="risk">(rst:0x8 TG1WDT_SYS_RST)</span>.<br>
+  <span>CRITICO:</span> la console è su USB-Serial-JTAG (GPIO19/20): per il monitor serve una porta <b>USB 2.0</b> (D−/D+ presenti), baud 115200.<br>
+</div>
+
+</body>
+</html>

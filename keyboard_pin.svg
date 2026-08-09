@@ -1,0 +1,395 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Tastiera TI-59 vista da dietro — pin del connettore piatto (in mm, scala 1:1)
+     TI-59 keyboard seen from behind — flat-cable connector pins (in mm, 1:1 scale) -->
+
+<svg
+   version="1.1"
+   id="svg_keyboard_back"
+   width="240mm"
+   height="95mm"
+   viewBox="0 0 240 95"
+   inkscape:version="1.4.4 (dcaf3e7d, 2026-05-05)"
+   sodipodi:docname="keyboard_pin.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview34"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.41473549"
+     inkscape:cx="223.03372"
+     inkscape:cy="69.924085"
+     inkscape:window-width="1440"
+     inkscape:window-height="847"
+     inkscape:window-x="0"
+     inkscape:window-y="25"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg_keyboard_back" />
+  <defs
+     id="defs1">
+    <style
+       id="style1">
+      .kbd { fill:#e8e4dc; stroke:#333333; stroke-width:0.8; }
+      .pin { fill:#c07a1e; stroke:#5a3a0e; stroke-width:0.4; }
+      .pin-core { fill:#8a8a8a; }
+      .lbl { font-family:Arial, sans-serif; font-size:4.5px; fill:#111111;
+             text-anchor:middle; }
+      .dim { font-family:Arial, sans-serif; font-size:4px; fill:#444444;
+             text-anchor:middle; }
+      .note { font-family:Arial, sans-serif; font-size:4.5px; fill:#666666; }
+      .arrow { stroke:#666666; stroke-width:0.3; fill:none; }
+    </style>
+  </defs>
+  <!-- Rettangolo tastiera visto da dietro — keyboard rectangle, seen from behind -->
+  <rect
+     class="kbd"
+     x="7.002326"
+     y="27.175585"
+     width="226"
+     height="52"
+     rx="3"
+     id="rect1" />
+  <!-- Contorno display (zona vuota sopra i tasti) — display area outline -->
+  <!-- Pins: 14 pin, g1 quasi attaccato al bordo sinistro (x=5, bordo a x=2),
+       g10 a ~1 cm dal bordo destro (x=218, bordo a x=228). Passo uniforme 16.38 mm.
+       Pins: 14 pins, g1 almost at left edge (x=5, edge at x=2), g10 ~1 cm from
+       right edge (x=218, edge at x=228). Uniform pitch 16.38 mm. -->
+  <g
+     id="g35"
+     transform="translate(-1.6337212,10.838374)">
+    <circle
+       class="pin"
+       cx="12.92035"
+       cy="12.977898"
+       r="2.4000001"
+       id="circle2" />
+    <circle
+       class="pin-core"
+       cx="12.92035"
+       cy="12.977898"
+       r="1"
+       id="circle3" />
+    <circle
+       class="pin"
+       cx="29.320351"
+       cy="12.977898"
+       r="2.4000001"
+       id="circle4" />
+    <circle
+       class="pin-core"
+       cx="29.320351"
+       cy="12.977898"
+       r="1"
+       id="circle5" />
+    <circle
+       class="pin"
+       cx="45.720348"
+       cy="12.977898"
+       r="2.4000001"
+       id="circle6" />
+    <circle
+       class="pin-core"
+       cx="45.720348"
+       cy="12.977898"
+       r="1"
+       id="circle7" />
+    <circle
+       class="pin"
+       cx="62.12035"
+       cy="12.977898"
+       r="2.4000001"
+       id="circle8" />
+    <circle
+       class="pin-core"
+       cx="62.12035"
+       cy="12.977898"
+       r="1"
+       id="circle9" />
+    <circle
+       class="pin"
+       cx="78.520348"
+       cy="12.977898"
+       r="2.4000001"
+       id="circle10" />
+    <circle
+       class="pin-core"
+       cx="78.520348"
+       cy="12.977898"
+       r="1"
+       id="circle11" />
+    <circle
+       class="pin"
+       cx="94.820351"
+       cy="12.977898"
+       r="2.4000001"
+       id="circle12" />
+    <circle
+       class="pin-core"
+       cx="94.820351"
+       cy="12.977898"
+       r="1"
+       id="circle13" />
+    <circle
+       class="pin"
+       cx="111.22035"
+       cy="12.977898"
+       r="2.4000001"
+       id="circle14" />
+    <circle
+       class="pin-core"
+       cx="111.22035"
+       cy="12.977898"
+       r="1"
+       id="circle15" />
+    <circle
+       class="pin"
+       cx="127.62035"
+       cy="12.977898"
+       r="2.4000001"
+       id="circle16" />
+    <circle
+       class="pin-core"
+       cx="127.62035"
+       cy="12.977898"
+       r="1"
+       id="circle17" />
+    <circle
+       class="pin"
+       cx="144.02036"
+       cy="12.977898"
+       r="2.4000001"
+       id="circle18" />
+    <circle
+       class="pin-core"
+       cx="144.02036"
+       cy="12.977898"
+       r="1"
+       id="circle19" />
+    <circle
+       class="pin"
+       cx="160.42035"
+       cy="12.977898"
+       r="2.4000001"
+       id="circle20" />
+    <circle
+       class="pin-core"
+       cx="160.42035"
+       cy="12.977898"
+       r="1"
+       id="circle21" />
+    <circle
+       class="pin"
+       cx="176.82034"
+       cy="12.977898"
+       r="2.4000001"
+       id="circle22" />
+    <circle
+       class="pin-core"
+       cx="176.82034"
+       cy="12.977898"
+       r="1"
+       id="circle23" />
+    <circle
+       class="pin"
+       cx="193.22035"
+       cy="12.977898"
+       r="2.4000001"
+       id="circle24" />
+    <circle
+       class="pin-core"
+       cx="193.22035"
+       cy="12.977898"
+       r="1"
+       id="circle25" />
+    <circle
+       class="pin"
+       cx="209.62035"
+       cy="12.977898"
+       r="2.4000001"
+       id="circle26" />
+    <circle
+       class="pin-core"
+       cx="209.62035"
+       cy="12.977898"
+       r="1"
+       id="circle27" />
+    <circle
+       class="pin"
+       cx="226.02036"
+       cy="12.977898"
+       r="2.4000001"
+       id="circle28" />
+    <circle
+       class="pin-core"
+       cx="226.02036"
+       cy="12.977898"
+       r="1"
+       id="circle29" />
+  </g>
+  <g
+     id="g34"
+     transform="translate(-0.34353205,-16.67442)">
+    <text
+       class="lbl"
+       x="12.92035"
+       y="22.977898"
+       id="text3">g1</text>
+    <text
+       class="lbl"
+       x="29.320351"
+       y="22.977898"
+       id="text5">g14</text>
+    <text
+       class="lbl"
+       x="45.720348"
+       y="22.977898"
+       id="text7">g6</text>
+    <text
+       class="lbl"
+       x="62.12035"
+       y="22.977898"
+       id="text9">g7</text>
+    <text
+       class="lbl"
+       x="78.520348"
+       y="22.977898"
+       id="text11">g13</text>
+    <text
+       class="lbl"
+       x="94.820351"
+       y="22.977898"
+       id="text13">g4</text>
+    <text
+       class="lbl"
+       x="111.22035"
+       y="22.977898"
+       id="text15">g5</text>
+    <text
+       class="lbl"
+       x="127.62035"
+       y="22.977898"
+       id="text17">g12</text>
+    <text
+       class="lbl"
+       x="144.02036"
+       y="22.977898"
+       id="text19">g2</text>
+    <text
+       class="lbl"
+       x="160.42035"
+       y="22.977898"
+       id="text21">g9</text>
+    <text
+       class="lbl"
+       x="176.82034"
+       y="22.977898"
+       id="text23">g11</text>
+    <text
+       class="lbl"
+       x="193.22035"
+       y="22.977898"
+       id="text25">g3</text>
+    <text
+       class="lbl"
+       x="209.62035"
+       y="22.977898"
+       id="text27">g8</text>
+    <text
+       class="lbl"
+       x="226.02036"
+       y="22.977898"
+       id="text29">g10</text>
+  </g>
+  <!-- Freccia ~1 cm dal bordo destro — ~1 cm arrow from right edge -->
+  <!-- Nota sinistra: primo pin quasi attaccato al bordo — note left -->
+  <text
+     class="note"
+     x="121.66977"
+     y="41.311623"
+     style="text-anchor:middle"
+     id="text34">Tastiera vista da dietro — ordine pin da sinistra a destra</text>
+  <text
+     class="note"
+     x="121.66977"
+     y="50.311623"
+     style="text-anchor:middle"
+     id="text35">Keyboard seen from behind — pin order left to right</text>
+  <path
+     style="fill:none;stroke:#d36910;stroke-width:1;stroke-linecap:round;stroke-miterlimit:3.2;stroke-dasharray:none"
+     d="m 11.318601,23.595049 -0.0026,-10.009516"
+     id="path1"
+     sodipodi:nodetypes="cc" />
+  <path
+     style="fill:none;stroke:#d36910;stroke-width:1;stroke-linecap:round;stroke-miterlimit:3.2;stroke-dasharray:none"
+     d="m 27.708916,23.595049 -0.0026,-10.009516"
+     id="path1-9"
+     sodipodi:nodetypes="cc" />
+  <path
+     style="fill:none;stroke:#d36910;stroke-width:1;stroke-linecap:round;stroke-miterlimit:3.2;stroke-dasharray:none"
+     d="m 44.099231,23.595049 -0.0026,-10.009516"
+     id="path1-3"
+     sodipodi:nodetypes="cc" />
+  <path
+     style="fill:none;stroke:#d36910;stroke-width:1;stroke-linecap:round;stroke-miterlimit:3.2;stroke-dasharray:none"
+     d="m 60.489546,23.595049 -0.0026,-10.009516"
+     id="path1-6"
+     sodipodi:nodetypes="cc" />
+  <path
+     style="fill:none;stroke:#d36910;stroke-width:1;stroke-linecap:round;stroke-miterlimit:3.2;stroke-dasharray:none"
+     d="m 76.879862,23.595049 -0.0026,-10.009516"
+     id="path1-62"
+     sodipodi:nodetypes="cc" />
+  <path
+     style="fill:none;stroke:#d36910;stroke-width:1;stroke-linecap:round;stroke-miterlimit:3.2;stroke-dasharray:none"
+     d="m 93.270177,23.595049 -0.0026,-10.009516"
+     id="path1-39"
+     sodipodi:nodetypes="cc" />
+  <path
+     style="fill:none;stroke:#d36910;stroke-width:1;stroke-linecap:round;stroke-miterlimit:3.2;stroke-dasharray:none"
+     d="m 109.66069,23.595049 -0.003,-10.009516"
+     id="path1-1"
+     sodipodi:nodetypes="cc" />
+  <path
+     style="fill:none;stroke:#d36910;stroke-width:1;stroke-linecap:round;stroke-miterlimit:3.2;stroke-dasharray:none"
+     d="m 126.05101,23.595049 -0.003,-10.009516"
+     id="path1-36"
+     sodipodi:nodetypes="cc" />
+  <path
+     style="fill:none;stroke:#d36910;stroke-width:1;stroke-linecap:round;stroke-miterlimit:3.2;stroke-dasharray:none"
+     d="m 142.44132,23.595049 -0.003,-10.009516"
+     id="path1-8"
+     sodipodi:nodetypes="cc" />
+  <path
+     style="fill:none;stroke:#d36910;stroke-width:1;stroke-linecap:round;stroke-miterlimit:3.2;stroke-dasharray:none"
+     d="m 158.83164,23.595049 -0.003,-10.009516"
+     id="path1-7"
+     sodipodi:nodetypes="cc" />
+  <path
+     style="fill:none;stroke:#d36910;stroke-width:1;stroke-linecap:round;stroke-miterlimit:3.2;stroke-dasharray:none"
+     d="m 175.22195,23.595049 -0.003,-10.009516"
+     id="path1-84"
+     sodipodi:nodetypes="cc" />
+  <path
+     style="fill:none;stroke:#d36910;stroke-width:1;stroke-linecap:round;stroke-miterlimit:3.2;stroke-dasharray:none"
+     d="m 191.61227,23.595049 -0.003,-10.009516"
+     id="path1-4"
+     sodipodi:nodetypes="cc" />
+  <path
+     style="fill:none;stroke:#d36910;stroke-width:1;stroke-linecap:round;stroke-miterlimit:3.2;stroke-dasharray:none"
+     d="m 208.00258,23.595049 -0.003,-10.009516"
+     id="path1-32"
+     sodipodi:nodetypes="cc" />
+  <path
+     style="fill:none;stroke:#d36910;stroke-width:1;stroke-linecap:round;stroke-miterlimit:3.2;stroke-dasharray:none"
+     d="m 224.3929,23.595049 -0.003,-10.009516"
+     id="path1-41"
+     sodipodi:nodetypes="cc" />
+</svg>

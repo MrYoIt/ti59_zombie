@@ -12,3 +12,15 @@ data/god_mode.txt
 
 # Credenziali WiFi (contengono le password in chiaro); restano solo sul device
 data/wifi.json
+
+# Scheda magnetica di prova (formato cardemu JSON); resta solo locale
+data/test.txt
+
+# Registro locale delle modifiche (non versionare)
+CAMBI.txt
+
+# Alias macOS a volumi esterni
+TRANSCEND
+
+# Backup di file sorgente
+src/*.bak_*

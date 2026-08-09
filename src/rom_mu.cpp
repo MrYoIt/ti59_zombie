@@ -17,7 +17,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 // rom_mu.cpp — generato da .t59 — generated from .t59
-// Modulo: Music  |  id="mu"  |  21 programmi  |  ROM_SIZE=5000 — Module: Music | id="mu" | 21 programs | ROM_SIZE=5000
+// Modulo: Math Utilities  |  id="mu"  |  21 programmi  |  ROM_SIZE=5000 — Module: Math Utilities | id="mu" | 21 programs | ROM_SIZE=5000
 // Codice di sicurezza ROM: 00  (non protetto) — ROM security code: 00 (unprotected)
 
 #include "rom_mu.h"
@@ -300,7 +300,7 @@ static const LibraryProgram mu_programs[] = {
 
 const LibraryModule MU_MODULE = {
     "mu",
-    "-11- Music",
+    "-11- Math Utilities",
     mu_rom,
     5000,
     mu_programs,

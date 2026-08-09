@@ -100,4 +100,4 @@ The `app0` (3 MB) and `spiffs` (1.5 MB) partitions fit on both 8 MB and 16 MB; w
 
 ---
 
-**Links**: see `documentation.txt` (English only), `README_EN.md`, `ISTRUZIONI_EN.txt`, `docs/Collegamenti_TI59_Zombie_EN.html` (wiring scheme).
+**Links**: see `documentation.txt` (English only), `README_EN.md`, `INSTRUCTIONS_EN.txt`, `docs/Connections_TI59_Zombie_EN.html` (wiring scheme).
